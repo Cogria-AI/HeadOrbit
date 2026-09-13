@@ -52,13 +52,19 @@ struct MenuView: View {
             }
             if case .tracking(let side) = tracker.status {
                 row(l10n.t("device.source"), sideText(side))
+            } else if tracker.authorization == .authorized, tracker.headphonesRoutedAway {
+                HStack(spacing: 6) {
+                    Text(l10n.t("status.routedAway")).font(.callout).foregroundStyle(.secondary)
+                    info("device.routedAwayHint")
+                }
             } else if tracker.authorization == .authorized {
                 HStack(spacing: 6) {
                     Text(l10n.t("status.waitingHeadphones")).font(.callout).foregroundStyle(.secondary)
                     info("device.hint")
                     Spacer()
-                    Button(l10n.t("device.reconnect")) { tracker.reconnect() }
+                    Button(l10n.t(tracker.isReconnecting ? "device.reconnecting" : "device.reconnect")) { tracker.reconnect() }
                         .controlSize(.small)
+                        .disabled(tracker.isReconnecting)
                 }
             }
             if let err = tracker.lastError {
@@ -156,7 +162,7 @@ struct MenuView: View {
         case .denied: return l10n.t("status.denied")
         case .restricted: return l10n.t("status.restricted")
         case .waitingForPermission: return l10n.t("status.waitingPermission")
-        case .waitingForHeadphones: return l10n.t("status.waitingHeadphones")
+        case .waitingForHeadphones: return l10n.t(tracker.headphonesRoutedAway ? "status.routedAway" : "status.waitingHeadphones")
         case .tracking(let side): return l10n.t("status.tracking", sideText(side))
         }
     }

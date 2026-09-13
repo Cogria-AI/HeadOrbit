@@ -25,6 +25,11 @@ final class HeadTracker: NSObject, ObservableObject {
     @Published private(set) var pose: HeadPose = .zero
     @Published private(set) var isCalibrated = false
     @Published private(set) var lastError: String?
+    /// 手动重连后的冷却：期间按钮禁用并显示「连接中」，避免连点把正在建立的会话拆掉
+    @Published private(set) var isReconnecting = false
+    /// 耳机当前不是这台 Mac 的音频输出（通常是自动切换到了 iPhone / iPad）。
+    /// 实测这时候系统仍会回「已连接」，但一帧数据都不会来；耳机回到 Mac 后数据自动恢复。
+    @Published private(set) var headphonesRoutedAway = false
 
     /// 每一帧都会推送（比 @Published pose 更适合做逻辑，不受 SwiftUI 合并影响）
     let samples = PassthroughSubject<HeadPose, Never>()
@@ -75,6 +80,7 @@ final class HeadTracker: NSObject, ObservableObject {
             if self.lastSampleAt == nil {
                 log.notice("first sample: sensor=\(motion.sensorLocation.rawValue)")
                 self.autoReconnectArmed = true
+                self.isReconnecting = false
                 self.connectCheckTimer?.invalidate(); self.connectCheckTimer = nil
             }
             self.handle(motion)
@@ -98,8 +104,13 @@ final class HeadTracker: NSObject, ObservableObject {
     /// 用户手动点「重新连接」：销毁当前采集会话，换一个全新的 CMHeadphoneMotionManager 重来。
     /// 用于「先开程序后戴耳机」或系统那边的传感器流卡住没数据的情况。
     func reconnect() {
+        guard !isReconnecting else { return }
         log.notice("manual reconnect")
+        isReconnecting = true
         rebuildSession()
+        DispatchQueue.main.asyncAfter(deadline: .now() + connectGrace) { [weak self] in
+            self?.isReconnecting = false
+        }
     }
 
     private func rebuildSession() {
@@ -151,10 +162,24 @@ final class HeadTracker: NSObject, ObservableObject {
         if status != .tracking(side) { status = .tracking(side) }
     }
 
+    private var routeTick = 0
+
     private func checkStale() {
-        guard status.isTracking, let last = lastSampleAt else { return }
-        if Date().timeIntervalSince(last) > staleInterval {
+        if status.isTracking, let last = lastSampleAt, Date().timeIntervalSince(last) > staleInterval {
+            log.notice("no samples for \(self.staleInterval)s, treating as disconnected")
             status = .waitingForHeadphones
+        }
+        // 每 2 秒看一眼耳机是否还在 Mac 的音频路由上。只用来显示状态；
+        // 它回来的那一刻若仍没数据，重建一次会话（事件驱动，不循环）。
+        routeTick += 1
+        guard routeTick % 4 == 0 else { return }
+        let away = !AudioRoute.hasBluetoothOutput()
+        guard away != headphonesRoutedAway else { return }
+        headphonesRoutedAway = away
+        log.notice("headphones routed away: \(away)")
+        if !away, !status.isTracking, CMHeadphoneMotionManager.authorizationStatus() == .authorized {
+            log.notice("headphones back on this Mac, rebuilding session once")
+            rebuildSession()
         }
     }
 

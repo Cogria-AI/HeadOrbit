@@ -80,7 +80,10 @@ final class L10n: ObservableObject {
         "auth.unknown": ("Unknown", "未知"),
         "device.openSettings": ("Settings…", "去设置"),
         "device.source": ("Data source", "数据来源"),
+        "status.routedAway": ("Headphones are on another device", "耳机已切到其他设备"),
+        "device.routedAwayHint": ("Your AirPods are currently connected to another device (usually an iPhone or iPad that auto-switched). HeadOrbit does nothing about that. Tracking resumes on its own once they come back to this Mac.", "AirPods 现在连在别的设备上（通常是 iPhone / iPad 自动切换过去了）。HeadOrbit 不会去干预。等它回到这台 Mac，追踪会自动恢复。"),
         "device.reconnect": ("Reconnect", "重新连接"),
+        "device.reconnecting": ("Connecting…", "连接中…"),
         "device.hint": ("Wear AirPods / Beats that support head tracking, and make sure they are connected to this Mac, not your iPhone.", "戴上支持头部追踪的 AirPods / Beats，并确认它连接的是这台 Mac，不是 iPhone。"),
 
         // pose section
