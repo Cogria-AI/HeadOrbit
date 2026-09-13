@@ -6,6 +6,10 @@
   <b>English</b> · <a href="README.zh-CN.md">简体中文</a>
 </p>
 
+<p align="center">
+  <img src="docs/icon.png" alt="" width="128">
+</p>
+
 # HeadOrbit
 
 A tiny macOS menu bar app that reads head motion from your AirPods and turns it into small, useful things on screen.
@@ -38,7 +42,7 @@ Nothing leaves your Mac. No network, no screen recording, no accounts.
 
 ### Option 1: download the app
 
-Grab the latest `HeadOrbit-vX.Y.Z.zip` from the [Releases](https://github.com/Cogria-AI/HeadOrbit/releases) page, unzip it, and drag `HeadOrbit.app` into your Applications folder.
+Grab the latest `HeadOrbit-vX.Y.Z.dmg` from the [Releases](https://github.com/Cogria-AI/HeadOrbit/releases) page, open it, and drag `HeadOrbit` into the Applications folder.
 
 The app is not notarized with Apple, so on first open macOS will say it can't verify the developer. Either **right-click the app → Open → Open**, or run this once:
 

@@ -27,9 +27,10 @@ targets:
       properties:
         CFBundleName: HeadOrbit
         CFBundleDisplayName: HeadOrbit
-        CFBundleShortVersionString: "0.1.0"
-        CFBundleVersion: "1"
+        CFBundleShortVersionString: "0.1.1"
+        CFBundleVersion: "2"
         LSMinimumSystemVersion: "14.0"
+        CFBundleIconFile: AppIcon
         LSUIElement: true
         NSMotionUsageDescription: HeadOrbit 需要读取 AirPods 的头部运动数据，用来判断你是否正看着屏幕。
     settings:

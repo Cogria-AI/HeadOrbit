@@ -6,6 +6,10 @@
   <a href="README.md">English</a> · <b>简体中文</b>
 </p>
 
+<p align="center">
+  <img src="docs/icon.png" alt="" width="128">
+</p>
+
 # HeadOrbit
 
 一个很小的 macOS 菜单栏应用。它读取 AirPods 的头部运动数据，把「你的头朝哪儿」变成屏幕上一点点有用的小事。
@@ -38,7 +42,7 @@
 
 ### 方式一：直接下载
 
-到 [Releases](https://github.com/Cogria-AI/HeadOrbit/releases) 页面下载最新的 `HeadOrbit-vX.Y.Z.zip`，解压后把 `HeadOrbit.app` 拖进「应用程序」文件夹。
+到 [Releases](https://github.com/Cogria-AI/HeadOrbit/releases) 页面下载最新的 `HeadOrbit-vX.Y.Z.dmg`，打开后把 `HeadOrbit` 拖进「应用程序」文件夹。
 
 这个应用没有经过 Apple 公证，第一次打开时 macOS 会提示无法验证开发者。**右键点击应用 → 打开 → 打开**即可，或者执行一次：
 
