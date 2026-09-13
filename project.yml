@@ -1,0 +1,38 @@
+name: HeadOrbit
+options:
+  bundleIdPrefix: com.cogria
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    # Ad-hoc signing for local builds. macOS may re-ask for Motion & Fitness after each rebuild;
+    # to keep the grant stable, switch to CODE_SIGN_STYLE: Automatic + DEVELOPMENT_TEAM: <your team id>.
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    ENABLE_HARDENED_RUNTIME: NO
+    ENABLE_APP_SANDBOX: NO
+    SWIFT_STRICT_CONCURRENCY: minimal
+targets:
+  HeadOrbit:
+    type: application
+    platform: macOS
+    sources:
+      - path: HeadOrbit
+        excludes: ["Info.plist"]
+    info:
+      path: HeadOrbit/Info.plist
+      properties:
+        CFBundleName: HeadOrbit
+        CFBundleDisplayName: HeadOrbit
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSMinimumSystemVersion: "14.0"
+        LSUIElement: true
+        NSMotionUsageDescription: HeadOrbit 需要读取 AirPods 的头部运动数据，用来判断你是否正看着屏幕。
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.cogria.HeadOrbit
+        GENERATE_INFOPLIST_FILE: NO

@@ -1,0 +1,11 @@
+# Build output
+build/
+DerivedData/
+*.xcodeproj/
+xcuserdata/
+
+# Local
+.DS_Store
+HANDOFF.md
+generated/
+dist/

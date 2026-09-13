@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Build
+        run: |
+          xcodegen generate
+          xcodebuild -project HeadOrbit.xcodeproj -scheme HeadOrbit -configuration Release \
+            -derivedDataPath build CODE_SIGN_IDENTITY=- build
+
+      - name: Package
+        run: |
+          mkdir -p dist
+          ditto -c -k --keepParent build/Build/Products/Release/HeadOrbit.app "dist/HeadOrbit-${GITHUB_REF_NAME}.zip"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "dist/HeadOrbit-${GITHUB_REF_NAME}.zip" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "dist/HeadOrbit-${GITHUB_REF_NAME}.zip" \
+              --title "HeadOrbit $GITHUB_REF_NAME" --generate-notes
+          fi
