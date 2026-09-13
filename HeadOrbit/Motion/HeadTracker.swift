@@ -31,12 +31,16 @@ final class HeadTracker: NSObject, ObservableObject {
     /// 用户点了校准。所有功能应据此清掉计时器、提醒和暂停，从当前姿态重新开始算
     let didRecenter = PassthroughSubject<Void, Never>()
 
-    private let manager = CMHeadphoneMotionManager()
+    private var manager = CMHeadphoneMotionManager()
     private var reference: CMAttitude?
     private var lastAttitude: CMAttitude?
     private var lastSampleAt: Date?
     private var staleTimer: Timer?
     private var permissionTimer: Timer?
+    private var retryTimer: Timer?
+    /// 授权正常却迟迟没有耳机数据时，每隔这么久重建一次采集会话。
+    /// 实测系统的「耳机已连接」回调偶尔会不来（日志里见过 13 秒没动静），重建后就正常。
+    private let retryInterval: TimeInterval = 10
     private var connectedByDelegate = false
 
     /// 超过这个时间没收到数据就当作耳机没在用（摘下 / 切到 iPhone / 断开）
@@ -78,6 +82,7 @@ final class HeadTracker: NSObject, ObservableObject {
         // 首次启动会弹「运动与健身」授权框。系统不会回调告诉我们用户点了什么，
         // 所以在未决期间轮询；一旦授权，重启采集，保证会话是在授权之后建立的。
         if authorization == .notDetermined { startPermissionPolling() }
+        startRetryTimer()
     }
 
     /// 打开面板时调一下，把权限 / 状态刷成最新
@@ -91,6 +96,7 @@ final class HeadTracker: NSObject, ObservableObject {
         manager.stopConnectionStatusUpdates()
         staleTimer?.invalidate(); staleTimer = nil
         permissionTimer?.invalidate(); permissionTimer = nil
+        retryTimer?.invalidate(); retryTimer = nil
         lastSampleAt = nil
         refreshStatus()
     }
@@ -125,6 +131,21 @@ final class HeadTracker: NSObject, ObservableObject {
         guard status.isTracking, let last = lastSampleAt else { return }
         if Date().timeIntervalSince(last) > staleInterval {
             status = .waitingForHeadphones
+        }
+    }
+
+    private func startRetryTimer() {
+        retryTimer?.invalidate()
+        retryTimer = Timer.scheduledTimer(withTimeInterval: retryInterval, repeats: true) { [weak self] _ in
+            guard let self, !self.status.isTracking,
+                  CMHeadphoneMotionManager.authorizationStatus() == .authorized else { return }
+            log.notice("no headphone data for \(self.retryInterval)s, rebuilding motion session")
+            self.manager.stopDeviceMotionUpdates()
+            self.manager.stopConnectionStatusUpdates()
+            self.manager.delegate = nil
+            self.manager = CMHeadphoneMotionManager()
+            self.manager.delegate = self
+            self.start()
         }
     }
 
