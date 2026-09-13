@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<string>en</string>
 	<key>CFBundleDisplayName</key>
 	<string>HeadOrbit</string>
 	<key>CFBundleExecutable</key>
@@ -14,6 +14,11 @@
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>zh-Hans</string>
+	</array>
 	<key>CFBundleName</key>
 	<string>HeadOrbit</string>
 	<key>CFBundlePackageType</key>
@@ -27,6 +32,6 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSMotionUsageDescription</key>
-	<string>HeadOrbit 需要读取 AirPods 的头部运动数据，用来判断你是否正看着屏幕。</string>
+	<string>HeadOrbit reads head motion from your AirPods to tell whether you are looking at the screen.</string>
 </dict>
 </plist>

@@ -32,7 +32,9 @@ targets:
         LSMinimumSystemVersion: "14.0"
         CFBundleIconFile: AppIcon
         LSUIElement: true
-        NSMotionUsageDescription: HeadOrbit 需要读取 AirPods 的头部运动数据，用来判断你是否正看着屏幕。
+        NSMotionUsageDescription: HeadOrbit reads head motion from your AirPods to tell whether you are looking at the screen.
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, zh-Hans]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.cogria.HeadOrbit
