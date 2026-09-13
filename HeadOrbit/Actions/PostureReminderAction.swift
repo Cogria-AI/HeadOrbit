@@ -5,16 +5,16 @@ import os
 private let log = Logger(subsystem: "com.cogria.HeadOrbit", category: "Posture")
 
 /// 功能二：坐姿提醒。校准时的姿态算「坐正」。人一弯腰塌下去，为了继续看屏幕头就会越来越仰。
-/// 触发角度带符号：设成 -15 表示 Pitch 低于 -15° 才触发，设成 +15 表示高于 +15° 才触发。
-/// 也就是只盯一个方向，另一个方向（比如低头看键盘）永远不算。
-/// 实测 AirPods 抬头时 Pitch 为正、低头为负，所以默认 +15。
+/// 规则只有一条：Pitch 高于触发角度并持续一段时间就提醒，回落到（触发角度 - 5°）以下就恢复。
+/// 触发角度可以是 0 或负数（校准时没坐太直的话会用到），含义不变。
+/// 实测 AirPods 抬头时 Pitch 为正、低头为负，所以默认 +15；低头永远不会高于阈值，自然不算。
 final class PostureReminderAction: ObservableObject, HeadAction {
     let id = "posture-reminder"
     let title = "坐姿提醒"
 
     @Published var isEnabled: Bool { didSet { store(); if !isEnabled { reset() } } }
-    /// 带符号的触发角度：负值 = Pitch 低于它触发；正值 = Pitch 高于它触发
-    @Published var thresholdDegrees: Double { didSet { store(); trigger.threshold = abs(thresholdDegrees) } }
+    /// 触发角度（带符号）：Pitch 高于它就算坐歪
+    @Published var thresholdDegrees: Double { didSet { store(); trigger.threshold = thresholdDegrees } }
     /// 要持续多久才提醒
     @Published var dwellSeconds: Double { didSet { store(); trigger.enterDwell = dwellSeconds } }
 
@@ -38,7 +38,7 @@ final class PostureReminderAction: ObservableObject, HeadAction {
         isEnabled = d.object(forKey: "posture.enabled") as? Bool ?? false
         thresholdDegrees = threshold
         dwellSeconds = dwell
-        trigger = DwellTrigger(threshold: abs(threshold), enterDwell: dwell, hysteresis: 5, exitDwell: 0.8)
+        trigger = DwellTrigger(threshold: threshold, enterDwell: dwell, hysteresis: 5, exitDwell: 0.8)
         overlay.dimAlpha = 0.35  // 模糊 + 压暗，不全黑，屏幕上的东西还认得出
     }
 
@@ -48,9 +48,8 @@ final class PostureReminderAction: ObservableObject, HeadAction {
             if Date() < until { return }
             snoozedUntil = nil
         }
-        let dev = deviation(of: pose.pitch)
-        if trigger.update(dev, at: pose.timestamp) {
-            log.notice("posture flip → \(self.trigger.isActive) pitch=\(pose.pitch, format: .fixed(precision: 1)) deviation=\(dev, format: .fixed(precision: 1)) threshold=\(self.thresholdDegrees)")
+        if trigger.update(pose.pitch, at: pose.timestamp) {
+            log.notice("posture flip → \(self.trigger.isActive) pitch=\(pose.pitch, format: .fixed(precision: 1)) threshold=\(self.thresholdDegrees)")
             setReminding(trigger.isActive)
         }
         if isReminding {
@@ -81,10 +80,8 @@ final class PostureReminderAction: ObservableObject, HeadAction {
         }
     }
 
-    /// 只取阈值所指方向上的偏离量，另一方向一律当 0
-    func deviation(of pitch: Double) -> Double {
-        thresholdDegrees < 0 ? max(0, -pitch) : max(0, pitch)
-    }
+    /// 面板高亮用：当前 Pitch 是否已经越过触发角度
+    func isOver(_ pitch: Double) -> Bool { pitch > thresholdDegrees }
 
     private func message(for pitch: Double) -> String {
         L10n.shared.t("posture.overlay", pitch, snoozeSeconds)

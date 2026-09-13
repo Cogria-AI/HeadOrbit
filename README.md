@@ -93,7 +93,7 @@ Hover the small ⓘ icons in the menu for a one-line explanation of each feature
 
 | Setting | What it does | Default |
 |---|---|---|
-| Trigger angle | Head pitch relative to your calibrated pose. Positive watches head-up only (slouching), negative watches head-down only | +15° |
+| Trigger angle | Reminds when head pitch rises above this value (head-up is positive, measured from your calibrated pose). Set it to 0 or below if you calibrated while already slouching a bit | +15° |
 | Hold before reminding | How long the bad posture must persist. Slouching happens slowly, so this is measured in seconds, not fractions | 5 s |
 
 The reminder is off by default because it only makes sense after calibrating. While it's showing, press `Esc` or click **Dismiss, pause 1 min** in the menu.

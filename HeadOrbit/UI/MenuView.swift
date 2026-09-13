@@ -67,7 +67,7 @@ struct MenuView: View {
     private var poseSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             gauge(l10n.t("pose.yaw"), tracker.pose.yaw, highlight: blur.isEnabled && abs(tracker.pose.yaw) > blur.thresholdDegrees)
-            gauge(l10n.t("pose.pitch"), tracker.pose.pitch, highlight: posture.isEnabled && posture.deviation(of: tracker.pose.pitch) > abs(posture.thresholdDegrees))
+            gauge(l10n.t("pose.pitch"), tracker.pose.pitch, highlight: posture.isEnabled && posture.isOver(tracker.pose.pitch))
             HStack(spacing: 6) {
                 Button(l10n.t(tracker.isCalibrated ? "pose.recalibrate" : "pose.calibrate")) { tracker.recenter() }
                     .disabled(!tracker.status.isTracking)

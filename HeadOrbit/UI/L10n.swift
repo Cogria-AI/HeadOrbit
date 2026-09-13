@@ -100,7 +100,7 @@ final class L10n: ObservableObject {
 
         // posture action
         "posture.title": ("Posture reminder", "坐姿提醒"),
-        "posture.help": ("When you slouch, your head tilts up to keep looking at the screen. If pitch passes the trigger angle and stays there, the screen blurs until you sit up. Press Esc to dismiss and pause for a minute. A positive angle watches head-up only; a negative angle watches head-down only.", "弯腰塌下去时头会仰起来看屏幕。Pitch 越过触发角度并持续一段时间，屏幕模糊，坐直即恢复。按 Esc 解除并暂停 1 分钟。角度为正只盯抬头，为负只盯低头。"),
+        "posture.help": ("When you slouch, your head tilts up to keep looking at the screen. If pitch rises above the trigger angle and stays there, the screen blurs until you sit up. Press Esc to dismiss and pause for a minute. Head-up is positive; the angle may be 0 or negative if your calibrated pose wasn't perfectly straight.", "弯腰塌下去时头会仰起来看屏幕。Pitch 高于触发角度并持续一段时间，屏幕模糊，坐直即恢复。按 Esc 解除并暂停 1 分钟。抬头为正；校准时没坐太直的话，角度也可以设成 0 或负数。"),
         "posture.threshold": ("Trigger angle (now %@°)", "触发角度（当前 %@°）"),
         "posture.dwell": ("Hold before reminding", "持续多久后提醒"),
         "posture.dismiss": ("Dismiss, pause 1 min", "解除并暂停 1 分钟"),

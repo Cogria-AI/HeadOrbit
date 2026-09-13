@@ -1,7 +1,7 @@
 import Foundation
 
-/// 「超过阈值并持续一段时间才触发；回到阈值以内（带迟滞）并持续一小段时间才解除」的小状态机。
-/// 左右转头模糊、坐姿提醒都用它。
+/// 「值高于阈值并持续一段时间才触发；回落到（阈值 - 迟滞）以下并持续一小段时间才解除」的小状态机。
+/// 值和阈值都是带符号的普通数，阈值为 0 或负数也按同一条规则算。左右转头模糊、坐姿提醒都用它。
 struct DwellTrigger {
     var threshold: Double
     var enterDwell: TimeInterval
@@ -20,9 +20,7 @@ struct DwellTrigger {
 
     /// 喂一个值和时间戳，返回 true 表示状态刚刚翻转
     mutating func update(_ value: Double, at t: TimeInterval) -> Bool {
-        // 迟滞最多吃掉阈值的一半，否则阈值很小时回正条件会变成「< 0」永远不成立
-        let exitAt = threshold - min(hysteresis, threshold / 2)
-        let crossed = isActive ? value < exitAt : value > threshold
+        let crossed = isActive ? value < threshold - hysteresis : value > threshold
         guard crossed else { since = nil; return false }
         if since == nil { since = t }
         let dwell = isActive ? exitDwell : enterDwell
