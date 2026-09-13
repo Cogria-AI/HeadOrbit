@@ -37,10 +37,12 @@ final class HeadTracker: NSObject, ObservableObject {
     private var lastSampleAt: Date?
     private var staleTimer: Timer?
     private var permissionTimer: Timer?
-    private var retryTimer: Timer?
-    /// 授权正常却迟迟没有耳机数据时，每隔这么久重建一次采集会话。
-    /// 实测系统的「耳机已连接」回调偶尔会不来（日志里见过 13 秒没动静），重建后就正常。
-    private let retryInterval: TimeInterval = 10
+    private var connectCheckTimer: Timer?
+    /// 每次「耳机断开 → 重新连上」只自动重建一次会话，避免无数据时无限循环
+    private var autoReconnectArmed = true
+    /// 系统回「已连接」之后等这么久还没数据，就自动重建一次。
+    /// 实测首帧延迟 0.25s 到 10s+ 都见过，所以宽限期必须给足，太短会把正要建立的流拆掉。
+    private let connectGrace: TimeInterval = 20
     private var connectedByDelegate = false
 
     /// 超过这个时间没收到数据就当作耳机没在用（摘下 / 切到 iPhone / 断开）
@@ -70,7 +72,11 @@ final class HeadTracker: NSObject, ObservableObject {
                 return
             }
             guard let motion else { return }
-            if self.lastSampleAt == nil { log.notice("first sample: sensor=\(motion.sensorLocation.rawValue)") }
+            if self.lastSampleAt == nil {
+                log.notice("first sample: sensor=\(motion.sensorLocation.rawValue)")
+                self.autoReconnectArmed = true
+                self.connectCheckTimer?.invalidate(); self.connectCheckTimer = nil
+            }
             self.handle(motion)
         }
         log.notice("startDeviceMotionUpdates called, active=\(self.manager.isDeviceMotionActive)")
@@ -82,12 +88,30 @@ final class HeadTracker: NSObject, ObservableObject {
         // 首次启动会弹「运动与健身」授权框。系统不会回调告诉我们用户点了什么，
         // 所以在未决期间轮询；一旦授权，重启采集，保证会话是在授权之后建立的。
         if authorization == .notDetermined { startPermissionPolling() }
-        startRetryTimer()
     }
 
     /// 打开面板时调一下，把权限 / 状态刷成最新
     func refresh() {
         refreshStatus()
+    }
+
+    /// 用户手动点「重新连接」：销毁当前采集会话，换一个全新的 CMHeadphoneMotionManager 重来。
+    /// 用于「先开程序后戴耳机」或系统那边的传感器流卡住没数据的情况。
+    func reconnect() {
+        log.notice("manual reconnect")
+        rebuildSession()
+    }
+
+    private func rebuildSession() {
+        connectCheckTimer?.invalidate(); connectCheckTimer = nil
+        manager.stopDeviceMotionUpdates()
+        manager.stopConnectionStatusUpdates()
+        manager.delegate = nil
+        manager = CMHeadphoneMotionManager()
+        manager.delegate = self
+        lastSampleAt = nil
+        status = .waitingForHeadphones
+        start()
     }
 
     func stop() {
@@ -96,7 +120,7 @@ final class HeadTracker: NSObject, ObservableObject {
         manager.stopConnectionStatusUpdates()
         staleTimer?.invalidate(); staleTimer = nil
         permissionTimer?.invalidate(); permissionTimer = nil
-        retryTimer?.invalidate(); retryTimer = nil
+        connectCheckTimer?.invalidate(); connectCheckTimer = nil
         lastSampleAt = nil
         refreshStatus()
     }
@@ -131,21 +155,6 @@ final class HeadTracker: NSObject, ObservableObject {
         guard status.isTracking, let last = lastSampleAt else { return }
         if Date().timeIntervalSince(last) > staleInterval {
             status = .waitingForHeadphones
-        }
-    }
-
-    private func startRetryTimer() {
-        retryTimer?.invalidate()
-        retryTimer = Timer.scheduledTimer(withTimeInterval: retryInterval, repeats: true) { [weak self] _ in
-            guard let self, !self.status.isTracking,
-                  CMHeadphoneMotionManager.authorizationStatus() == .authorized else { return }
-            log.notice("no headphone data for \(self.retryInterval)s, rebuilding motion session")
-            self.manager.stopDeviceMotionUpdates()
-            self.manager.stopConnectionStatusUpdates()
-            self.manager.delegate = nil
-            self.manager = CMHeadphoneMotionManager()
-            self.manager.delegate = self
-            self.start()
         }
     }
 
@@ -184,8 +193,18 @@ extension HeadTracker: CMHeadphoneMotionManagerDelegate {
     func headphoneMotionManagerDidConnect(_ manager: CMHeadphoneMotionManager) {
         log.notice("delegate: didConnect")
         DispatchQueue.main.async { [weak self] in
-            self?.connectedByDelegate = true
-            self?.refreshStatus()
+            guard let self else { return }
+            self.connectedByDelegate = true
+            self.refreshStatus()
+            // 耳机（重新）连上了但数据没跟着来：给一次自动重建的机会
+            guard self.autoReconnectArmed else { return }
+            self.connectCheckTimer?.invalidate()
+            self.connectCheckTimer = Timer.scheduledTimer(withTimeInterval: self.connectGrace, repeats: false) { [weak self] _ in
+                guard let self, !self.status.isTracking else { return }
+                log.notice("connected but no data after \(self.connectGrace)s, auto reconnect once")
+                self.autoReconnectArmed = false
+                self.rebuildSession()
+            }
         }
     }
 
@@ -196,6 +215,8 @@ extension HeadTracker: CMHeadphoneMotionManagerDelegate {
             self.connectedByDelegate = false
             self.lastSampleAt = nil
             self.status = .waitingForHeadphones
+            self.autoReconnectArmed = true   // 下次连上再给一次机会
+            self.connectCheckTimer?.invalidate(); self.connectCheckTimer = nil
         }
     }
 }

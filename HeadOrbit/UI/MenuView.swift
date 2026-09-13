@@ -53,9 +53,12 @@ struct MenuView: View {
             if case .tracking(let side) = tracker.status {
                 row(l10n.t("device.source"), sideText(side))
             } else if tracker.authorization == .authorized {
-                HStack(spacing: 4) {
+                HStack(spacing: 6) {
                     Text(l10n.t("status.waitingHeadphones")).font(.callout).foregroundStyle(.secondary)
                     info("device.hint")
+                    Spacer()
+                    Button(l10n.t("device.reconnect")) { tracker.reconnect() }
+                        .controlSize(.small)
                 }
             }
             if let err = tracker.lastError {

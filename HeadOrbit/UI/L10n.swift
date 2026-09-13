@@ -80,6 +80,7 @@ final class L10n: ObservableObject {
         "auth.unknown": ("Unknown", "未知"),
         "device.openSettings": ("Settings…", "去设置"),
         "device.source": ("Data source", "数据来源"),
+        "device.reconnect": ("Reconnect", "重新连接"),
         "device.hint": ("Wear AirPods / Beats that support head tracking, and make sure they are connected to this Mac, not your iPhone.", "戴上支持头部追踪的 AirPods / Beats，并确认它连接的是这台 Mac，不是 iPhone。"),
 
         // pose section
