@@ -84,7 +84,7 @@ struct MenuView: View {
                 info("blur.help")
             }
             Group {
-                labeledSlider(l10n.t("blur.threshold"), value: $blur.thresholdDegrees, range: 15...80, step: 1, unit: "°")
+                labeledSlider(l10n.t("blur.threshold"), value: $blur.thresholdDegrees, range: 0...90, step: 1, unit: "°")
                 labeledSlider(l10n.t("blur.dwell"), value: $blur.dwellSeconds, range: 0...2, step: 0.1, unit: "s")
                 labeledSlider(l10n.t("blur.dim"), value: $blur.dimAmount, range: 0...0.6, step: 0.05, unit: "")
             }
@@ -108,7 +108,7 @@ struct MenuView: View {
             }
             Group {
                 labeledSlider(l10n.t("posture.threshold", String(format: "%+.0f", tracker.pose.pitch)),
-                              value: $posture.thresholdDegrees, range: -40...40, step: 1, unit: "°")
+                              value: $posture.thresholdDegrees, range: -90...90, step: 1, unit: "°")
                 labeledSlider(l10n.t("posture.dwell"), value: $posture.dwellSeconds, range: 1...30, step: 1, unit: "s")
             }
             .disabled(!posture.isEnabled)
