@@ -25,7 +25,8 @@ final class PostureReminderAction: ObservableObject, HeadAction {
 
     let snoozeSeconds: TimeInterval = 60
 
-    private let overlay = BlurOverlayController(level: .aboveBlur)
+    private let overlay = BlurOverlayController.shared
+    private let dim = 0.35
     private lazy var escapeKey = GlobalHotKey(keyCode: GlobalHotKey.escape) { [weak self] in self?.dismiss() }
     private var trigger: DwellTrigger
     private let defaults = UserDefaults.standard
@@ -39,7 +40,6 @@ final class PostureReminderAction: ObservableObject, HeadAction {
         thresholdDegrees = threshold
         dwellSeconds = dwell
         trigger = DwellTrigger(threshold: threshold, enterDwell: dwell, hysteresis: 5, exitDwell: 0.8)
-        overlay.dimAlpha = 0.35  // 模糊 + 压暗，不全黑，屏幕上的东西还认得出
     }
 
     func process(_ pose: HeadPose) {
@@ -53,7 +53,7 @@ final class PostureReminderAction: ObservableObject, HeadAction {
             setReminding(trigger.isActive)
         }
         if isReminding {
-            overlay.message = message(for: pose.pitch)
+            overlay.request(id, dim: dim, message: message(for: pose.pitch))
         }
     }
 
@@ -73,11 +73,10 @@ final class PostureReminderAction: ObservableObject, HeadAction {
     }
 
     func preview(seconds: TimeInterval = 2) {
-        overlay.message = message(for: lastPitch)
-        overlay.show()
+        overlay.request(id + ".preview", dim: dim, message: message(for: lastPitch))
         DispatchQueue.main.asyncAfter(deadline: .now() + seconds) { [weak self] in
-            guard let self, !self.isReminding else { return }
-            self.overlay.hide()
+            guard let self else { return }
+            self.overlay.release(self.id + ".preview")
         }
     }
 
@@ -93,10 +92,10 @@ final class PostureReminderAction: ObservableObject, HeadAction {
         isReminding = on
         if on {
             escapeKey.register()
-            overlay.show()
+            overlay.request(id, dim: dim, message: message(for: lastPitch))
         } else {
             escapeKey.unregister()
-            overlay.hide()
+            overlay.release(id)
         }
     }
 

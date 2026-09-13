@@ -2,7 +2,33 @@ import AppKit
 
 /// 每块屏幕盖一层透明、不吃鼠标的窗口，让 WindowServer 把窗口背后的内容高斯模糊（见 WindowBlur），
 /// 再压一层可调的暗色。不需要录屏权限。可选在正中显示一行提示文字。
+///
+/// 全应用共用一层（`shared`）：多个功能同时触发时不叠加，压暗取最大值，文案取有文案的那个；
+/// 任一功能解除时，只要还有别的功能在用，遮罩就保持。
 final class BlurOverlayController {
+    static let shared = BlurOverlayController()
+
+    private struct Request { var dim: Double; var message: String? }
+    private var requests: [String: Request] = [:]
+
+    /// 某个功能要求显示遮罩（重复调用只是更新它的压暗 / 文案）
+    func request(_ owner: String, dim: Double, message: String? = nil) {
+        requests[owner] = Request(dim: dim, message: message)
+        apply()
+    }
+
+    /// 某个功能不再需要遮罩
+    func release(_ owner: String) {
+        guard requests.removeValue(forKey: owner) != nil else { return }
+        apply()
+    }
+
+    private func apply() {
+        guard !requests.isEmpty else { hide(); return }
+        dimAlpha = requests.values.map(\.dim).max() ?? 0
+        message = requests.values.compactMap(\.message).first
+        show()
+    }
     enum Layer {
         case blur       // 普通模糊层
         case aboveBlur  // 压在模糊层之上（带文字的提示用这个，文字才不会被另一层糊掉）
@@ -22,7 +48,7 @@ final class BlurOverlayController {
 
     var dimAlpha: Double = 0.15 { didSet { windows.forEach { $0.dimAlpha = dimAlpha } } }
     /// 模糊半径（像素）。WindowBlur 不可用时这项无效，只剩压暗
-    var blurRadius: Int = 30 { didSet { windows.forEach { $0.blurRadius = blurRadius } } }
+    var blurRadius: Int = 64 { didSet { windows.forEach { $0.blurRadius = blurRadius } } }
     var message: String? { didSet { windows.forEach { $0.message = message } } }
 
     init(level: Layer = .blur) {
@@ -84,7 +110,7 @@ private final class OverlayWindow: NSWindow {
     var dimAlpha: Double = 0.15 {
         didSet { dimView.layer?.backgroundColor = NSColor.black.withAlphaComponent(max(dimAlpha, 0.01)).cgColor }
     }
-    var blurRadius: Int = 30 {
+    var blurRadius: Int = 64 {
         didSet { WindowBlur.apply(to: self, radius: blurRadius) }
     }
     var message: String? {

@@ -12,11 +12,11 @@ final class LookAwayBlurAction: ObservableObject, HeadAction {
     /// 转开之后要持续多久才模糊，避免随便瞟一眼就触发
     @Published var dwellSeconds: Double { didSet { store(); trigger.enterDwell = dwellSeconds } }
     /// 模糊之上再压一层暗色，0 = 纯模糊
-    @Published var dimAmount: Double { didSet { store(); overlay.dimAlpha = dimAmount } }
+    @Published var dimAmount: Double { didSet { store(); if isBlurred { overlay.request(id, dim: dimAmount) } } }
 
     @Published private(set) var isBlurred = false
 
-    private let overlay = BlurOverlayController()
+    private let overlay = BlurOverlayController.shared
     private var trigger: DwellTrigger
     private let defaults = UserDefaults.standard
 
@@ -29,7 +29,6 @@ final class LookAwayBlurAction: ObservableObject, HeadAction {
         dwellSeconds = dwell
         dimAmount = d.object(forKey: "blur.dim") as? Double ?? 0.15
         trigger = DwellTrigger(threshold: threshold, enterDwell: dwell)
-        overlay.dimAlpha = dimAmount
     }
 
     func process(_ pose: HeadPose) {
@@ -45,17 +44,17 @@ final class LookAwayBlurAction: ObservableObject, HeadAction {
 
     /// 菜单里的「预览」：不管姿态，直接模糊 seconds 秒
     func preview(seconds: TimeInterval = 2) {
-        overlay.show()
+        overlay.request(id + ".preview", dim: dimAmount)
         DispatchQueue.main.asyncAfter(deadline: .now() + seconds) { [weak self] in
-            guard let self, !self.isBlurred else { return }
-            self.overlay.hide()
+            guard let self else { return }
+            self.overlay.release(self.id + ".preview")
         }
     }
 
     private func setBlurred(_ on: Bool) {
         guard on != isBlurred else { return }
         isBlurred = on
-        on ? overlay.show() : overlay.hide()
+        on ? overlay.request(id, dim: dimAmount) : overlay.release(id)
     }
 
     private func store() {
