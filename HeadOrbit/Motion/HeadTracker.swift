@@ -28,6 +28,8 @@ final class HeadTracker: NSObject, ObservableObject {
 
     /// 每一帧都会推送（比 @Published pose 更适合做逻辑，不受 SwiftUI 合并影响）
     let samples = PassthroughSubject<HeadPose, Never>()
+    /// 用户点了校准。所有功能应据此清掉计时器、提醒和暂停，从当前姿态重新开始算
+    let didRecenter = PassthroughSubject<Void, Never>()
 
     private let manager = CMHeadphoneMotionManager()
     private var reference: CMAttitude?
@@ -98,6 +100,9 @@ final class HeadTracker: NSObject, ObservableObject {
         guard let att = lastAttitude?.copy() as? CMAttitude else { return }
         reference = att
         isCalibrated = true
+        pose = .zero
+        log.notice("recenter")
+        didRecenter.send()
     }
 
     // MARK: - Private

@@ -59,6 +59,7 @@ final class PostureReminderAction: ObservableObject, HeadAction {
 
     func reset() {
         trigger.reset()
+        snoozedUntil = nil
         setReminding(false)
     }
 

@@ -9,7 +9,7 @@ protocol HeadAction: AnyObject {
 
     /// 每一帧姿态都会调到这里（主线程）
     func process(_ pose: HeadPose)
-    /// 追踪中断（摘下耳机 / 断连 / 关闭）时调用，用来收拾现场
+    /// 追踪中断（摘下耳机 / 断连 / 关闭）或用户重新校准时调用：清掉计时器、提醒、暂停，回到初始状态
     func reset()
 }
 
@@ -32,6 +32,10 @@ final class ActionEngine: ObservableObject {
             .sink { [weak self] status in
                 if !status.isTracking { self?.actions.forEach { $0.reset() } }
             }
+            .store(in: &bag)
+
+        tracker.didRecenter
+            .sink { [weak self] in self?.actions.forEach { $0.reset() } }
             .store(in: &bag)
     }
 }
