@@ -13,7 +13,7 @@ A tiny macOS menu bar app that reads head motion from your AirPods and turns it 
 Look away from the screen, and it blurs. Slouch until your chin comes up, and it nudges you to sit straight. That's it for now.
 
 > **Status: an experiment, made for fun.**
-> The idea came from things floating around the web about the head-tracking data AirPods expose. This is a weekend-project-grade tool, not a product. Expect rough edges.
+> Inspired by [this post by @bryllim_](https://x.com/bryllim_/status/2099049704822907277). This is a weekend-project-grade tool, not a product. Expect rough edges.
 
 ## Features
 
