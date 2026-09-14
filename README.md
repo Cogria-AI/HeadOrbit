@@ -26,7 +26,7 @@ Look away from the screen, and it blurs. Slouch until your chin comes up, and it
 - **Live head angles** in the menu, so you can see what the earbuds see.
 - **One-click calibration.** Whatever pose you're in when you click becomes "forward".
 - **Menu bar status icon.** Outline when nothing is connected, filled when your earbuds are streaming.
-- **English / 中文**, follows the system language, switchable in the menu.
+- **English / 中文 / 日本語**, follows the system language, switchable in the menu.
 - **Light / Dark / System** appearance for the panel.
 
 Nothing leaves your Mac. No network, no screen recording, no accounts.
@@ -100,7 +100,7 @@ The reminder is off by default because it only makes sense after calibrating. Wh
 
 ### Language and appearance
 
-Both live at the bottom of the menu. Language defaults to Chinese if your system is Chinese, English otherwise.
+Both live at the bottom of the menu. Language defaults to Chinese or Japanese if your system uses one of them, English otherwise.
 
 ## Troubleshooting
 

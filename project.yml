@@ -27,14 +27,14 @@ targets:
       properties:
         CFBundleName: HeadOrbit
         CFBundleDisplayName: HeadOrbit
-        CFBundleShortVersionString: "0.1.4"
-        CFBundleVersion: "5"
+        CFBundleShortVersionString: "0.1.5"
+        CFBundleVersion: "6"
         LSMinimumSystemVersion: "14.0"
         CFBundleIconFile: AppIcon
         LSUIElement: true
         NSMotionUsageDescription: HeadOrbit reads head motion from your AirPods to tell whether you are looking at the screen.
         CFBundleDevelopmentRegion: en
-        CFBundleLocalizations: [en, zh-Hans]
+        CFBundleLocalizations: [en, zh-Hans, ja]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.cogria.HeadOrbit
