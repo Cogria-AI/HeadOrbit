@@ -22,7 +22,8 @@ final class ActionEngine: ObservableObject {
         self.actions = actions
 
         tracker.samples
-            .sink { [weak self] pose in
+            .sink { [weak self, weak tracker] pose in
+                guard tracker?.isCalibrated == true else { return }
                 self?.actions.forEach { if $0.isEnabled { $0.process(pose) } }
             }
             .store(in: &bag)
@@ -31,6 +32,13 @@ final class ActionEngine: ObservableObject {
             .removeDuplicates()
             .sink { [weak self] status in
                 if !status.isTracking { self?.actions.forEach { $0.reset() } }
+            }
+            .store(in: &bag)
+
+        tracker.$isCalibrated
+            .removeDuplicates()
+            .sink { [weak self] calibrated in
+                if !calibrated { self?.actions.forEach { $0.reset() } }
             }
             .store(in: &bag)
 

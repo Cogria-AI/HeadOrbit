@@ -40,6 +40,9 @@ final class HeadTracker: NSObject, ObservableObject {
     private var reference: CMAttitude?
     private var lastAttitude: CMAttitude?
     private var lastSampleAt: Date?
+    private var lastSensor: SensorSide?
+    private var lastMotionTimestamp: TimeInterval?
+    private var sessionGeneration = 0
     private var staleTimer: Timer?
     private var permissionTimer: Timer?
     private var connectCheckTimer: Timer?
@@ -68,9 +71,12 @@ final class HeadTracker: NSObject, ObservableObject {
         guard !manager.isDeviceMotionActive else { return }
         lastError = nil
         manager.startConnectionStatusUpdates()
+        sessionGeneration += 1
+        let generation = sessionGeneration
         manager.startDeviceMotionUpdates(to: .main) { [weak self] motion, error in
-            guard let self else { return }
+            guard let self, self.sessionGeneration == generation else { return }
             if let error {
+                self.invalidateCalibration()
                 log.error("deviceMotion error: \(error.localizedDescription, privacy: .public) \((error as NSError).domain, privacy: .public)/\((error as NSError).code)")
                 self.lastError = error.localizedDescription
                 self.refreshStatus()
@@ -114,6 +120,8 @@ final class HeadTracker: NSObject, ObservableObject {
     }
 
     private func rebuildSession() {
+        sessionGeneration += 1
+        invalidateCalibration()
         connectCheckTimer?.invalidate(); connectCheckTimer = nil
         manager.stopDeviceMotionUpdates()
         manager.stopConnectionStatusUpdates()
@@ -126,6 +134,8 @@ final class HeadTracker: NSObject, ObservableObject {
     }
 
     func stop() {
+        sessionGeneration += 1
+        invalidateCalibration()
         log.notice("stop")
         manager.stopDeviceMotionUpdates()
         manager.stopConnectionStatusUpdates()
@@ -138,7 +148,9 @@ final class HeadTracker: NSObject, ObservableObject {
 
     /// 把当前姿态当作「正对屏幕」
     func recenter() {
-        guard let att = lastAttitude?.copy() as? CMAttitude else { return }
+        guard status.isTracking, let last = lastSampleAt,
+              Date().timeIntervalSince(last) <= staleInterval,
+              let att = lastAttitude?.copy() as? CMAttitude else { return }
         reference = att
         isCalibrated = true
         pose = .zero
@@ -148,8 +160,27 @@ final class HeadTracker: NSObject, ObservableObject {
 
     // MARK: - Private
 
+    private func invalidateCalibration() {
+        reference = nil
+        lastAttitude = nil
+        lastSensor = nil
+        lastMotionTimestamp = nil
+        isCalibrated = false
+        pose = .zero
+    }
+
     private func handle(_ motion: CMDeviceMotion) {
-        lastAttitude = motion.attitude
+        let side = SensorSide(motion.sensorLocation)
+        let interrupted = lastSampleAt.map { Date().timeIntervalSince($0) > staleInterval } ?? false
+        let sourceChanged = lastSensor.map { $0 != side } ?? false
+        let timeDiscontinuity = lastMotionTimestamp.map { motion.timestamp <= $0 || motion.timestamp - $0 > staleInterval } ?? false
+        if interrupted || sourceChanged || timeDiscontinuity {
+            log.notice("motion discontinuity; calibration required")
+            invalidateCalibration()
+        }
+        lastSensor = side
+        lastMotionTimestamp = motion.timestamp
+        lastAttitude = motion.attitude.copy() as? CMAttitude
         lastSampleAt = Date()
 
         let att = motion.attitude.copy() as! CMAttitude
@@ -158,7 +189,6 @@ final class HeadTracker: NSObject, ObservableObject {
         pose = p
         samples.send(p)
 
-        let side = SensorSide(motion.sensorLocation)
         if status != .tracking(side) { status = .tracking(side) }
     }
 
@@ -167,6 +197,7 @@ final class HeadTracker: NSObject, ObservableObject {
     private func checkStale() {
         if status.isTracking, let last = lastSampleAt, Date().timeIntervalSince(last) > staleInterval {
             log.notice("no samples for \(self.staleInterval)s, treating as disconnected")
+            invalidateCalibration()
             status = .waitingForHeadphones
         }
         // 每 2 秒看一眼耳机是否还在 Mac 的音频路由上。只用来显示状态；
@@ -219,6 +250,7 @@ extension HeadTracker: CMHeadphoneMotionManagerDelegate {
         log.notice("delegate: didConnect")
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
+            guard manager === self.manager else { return }
             self.connectedByDelegate = true
             self.refreshStatus()
             // 耳机（重新）连上了但数据没跟着来：给一次自动重建的机会
@@ -237,6 +269,8 @@ extension HeadTracker: CMHeadphoneMotionManagerDelegate {
         log.notice("delegate: didDisconnect")
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
+            guard manager === self.manager else { return }
+            self.invalidateCalibration()
             self.connectedByDelegate = false
             self.lastSampleAt = nil
             self.status = .waitingForHeadphones

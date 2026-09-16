@@ -14,7 +14,7 @@
 
 A tiny macOS menu bar app that reads head motion from your AirPods and turns it into small, useful things on screen.
 
-Look away from the screen, and it blurs. Slouch until your chin comes up, and it nudges you to sit straight. That's it for now.
+Look away from the screen, and it blurs. Lower your head past the configured pitch threshold, and it nudges you to sit straight. That's it for now.
 
 > **Status: an experiment, made for fun.**
 > Inspired by [this post by @bryllim_](https://x.com/bryllim_/status/2099049704822907277). This is a weekend-project-grade tool, not a product. Expect rough edges.
@@ -22,7 +22,7 @@ Look away from the screen, and it blurs. Slouch until your chin comes up, and it
 ## Features
 
 - **Blur when you look away.** Turn your head left or right past a set angle and the whole screen softly blurs. Look back and it clears.
-- **Posture reminder.** Calibrate while sitting straight. When you slump and your head tilts up to keep looking at the screen, HeadOrbit blurs the screen and shows a reminder until you sit up. Press `Esc` to dismiss and pause it for a minute.
+- **Posture reminder.** Calibrate while sitting straight. When pitch stays at or below the configured threshold, HeadOrbit blurs the screen and shows a reminder. It clears after pitch rises above the threshold plus 5° for 0.8 seconds. Press `Esc` to dismiss and pause it for a minute.
 - **Live head angles** in the menu, so you can see what the earbuds see.
 - **One-click calibration.** Whatever pose you're in when you click becomes "forward".
 - **Menu bar status icon.** Outline when nothing is connected, filled when your earbuds are streaming.
@@ -93,10 +93,14 @@ Hover the small ⓘ icons in the menu for a one-line explanation of each feature
 
 | Setting | What it does | Default |
 |---|---|---|
-| Trigger angle | Reminds when head pitch rises above this value (head-up is positive, measured from your calibrated pose). Set it to 0 or below if you calibrated while already slouching a bit | +15° |
+| Trigger angle | Reminds when head pitch is at or below this value (head-down is negative, measured from your calibrated pose) | -15° |
 | Hold before reminding | How long the bad posture must persist. Slouching happens slowly, so this is measured in seconds, not fractions | 5 s |
 
 The reminder is off by default because it only makes sense after calibrating. While it's showing, press `Esc` or click **Dismiss, pause 1 min** in the menu.
+
+Automatic actions require calibration. After a tracking interruption, a new motion session, a sensor-side change, or a discontinuity in sample timestamps, calibrate again when prompted. This prevents reuse of an invalid baseline; it does not compensate for continuous sensor drift.
+
+The posture rule now detects downward pitch, replacing the previous head-up rule. Existing nonpositive posture thresholds are retained; previous positive thresholds fall back to -15°. Newly saved thresholds can still be positive, zero, or negative.
 
 ### Language and appearance
 
@@ -115,6 +119,10 @@ Both live at the bottom of the menu. Language defaults to Chinese or Japanese if
 
 **The blur looks like a flat dark sheet instead of blur**
 - HeadOrbit uses a WindowServer blur that Apple doesn't document. If a future macOS removes it, the overlay falls back to plain dimming.
+
+## Regression checks
+
+Run `./Tests/run.sh` on macOS with the Xcode command-line tools. The checks cover trigger boundaries, dwell and recovery, posture highlighting, and action gating when calibration is invalid. UI overlays, hotkeys, and the tracker are stubbed; real headphone continuity and drift still require hardware testing.
 
 ## Ideas for later
 

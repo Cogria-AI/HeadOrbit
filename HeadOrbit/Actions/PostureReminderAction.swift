@@ -4,19 +4,16 @@ import os
 
 private let log = Logger(subsystem: "com.cogria.HeadOrbit", category: "Posture")
 
-/// 功能二：坐姿提醒。校准时的姿态算「坐正」。人一弯腰塌下去，为了继续看屏幕头就会越来越仰。
-/// 规则只有一条：Pitch 高于触发角度并持续一段时间就提醒，回落到（触发角度 - 5°）以下就恢复。
-/// 触发角度可以是 0 或负数（校准时没坐太直的话会用到），含义不变。
-/// 实测 AirPods 抬头时 Pitch 为正、低头为负，所以默认 +15；低头永远不会高于阈值，自然不算。
+/// Pitch 小于等于阈值并持续指定时间后提醒；高于阈值 + 5° 持续 0.8 秒后解除。
 final class PostureReminderAction: ObservableObject, HeadAction {
     let id = "posture-reminder"
     let title = "坐姿提醒"
 
     @Published var isEnabled: Bool { didSet { store(); if !isEnabled { reset() } } }
-    /// 触发角度（带符号）：Pitch 高于它就算坐歪
-    @Published var thresholdDegrees: Double { didSet { store(); trigger.threshold = thresholdDegrees } }
+    /// 触发角度（带符号）：Pitch 小于等于它时提醒
+    @Published var thresholdDegrees: Double { didSet { store(); trigger.threshold = thresholdDegrees; reset() } }
     /// 要持续多久才提醒
-    @Published var dwellSeconds: Double { didSet { store(); trigger.enterDwell = dwellSeconds } }
+    @Published var dwellSeconds: Double { didSet { store(); trigger.enterDwell = dwellSeconds; reset() } }
 
     @Published private(set) var isReminding = false
     @Published private(set) var lastPitch: Double = 0
@@ -29,17 +26,20 @@ final class PostureReminderAction: ObservableObject, HeadAction {
     private let dim = 0.35
     private lazy var escapeKey = GlobalHotKey(keyCode: GlobalHotKey.escape) { [weak self] in self?.dismiss() }
     private var trigger: DwellTrigger
-    private let defaults = UserDefaults.standard
+    private let defaults: UserDefaults
 
-    init() {
-        let d = UserDefaults.standard
-        // 键名带 v2：旧版默认值方向写反了（-15），换个键让它作废
-        let threshold = d.object(forKey: "posture.threshold.v2") as? Double ?? 15
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        let d = defaults
+        // 新规则默认 -15°；保留用户之前设置的非正阈值。
+        let previous = d.object(forKey: "posture.threshold.v2") as? Double
+        let threshold = d.object(forKey: "posture.threshold.lower.v1") as? Double
+            ?? previous.flatMap { $0 <= 0 ? $0 : nil } ?? -15
         let dwell = d.object(forKey: "posture.dwell") as? Double ?? 5
         isEnabled = d.object(forKey: "posture.enabled") as? Bool ?? false
         thresholdDegrees = threshold
         dwellSeconds = dwell
-        trigger = DwellTrigger(threshold: threshold, enterDwell: dwell, hysteresis: 5, exitDwell: 0.8)
+        trigger = DwellTrigger(threshold: threshold, enterDwell: dwell, hysteresis: 5, exitDwell: 0.8, direction: .atOrBelow)
     }
 
     func process(_ pose: HeadPose) {
@@ -81,7 +81,7 @@ final class PostureReminderAction: ObservableObject, HeadAction {
     }
 
     /// 面板高亮用：当前 Pitch 是否已经越过触发角度
-    func isOver(_ pitch: Double) -> Bool { pitch > thresholdDegrees }
+    func isOver(_ pitch: Double) -> Bool { trigger.isBeyondThreshold(pitch) }
 
     private func message(for pitch: Double) -> String {
         L10n.shared.t("posture.overlay", pitch, snoozeSeconds)
@@ -101,7 +101,7 @@ final class PostureReminderAction: ObservableObject, HeadAction {
 
     private func store() {
         defaults.set(isEnabled, forKey: "posture.enabled")
-        defaults.set(thresholdDegrees, forKey: "posture.threshold.v2")
+        defaults.set(thresholdDegrees, forKey: "posture.threshold.lower.v1")
         defaults.set(dwellSeconds, forKey: "posture.dwell")
     }
 }

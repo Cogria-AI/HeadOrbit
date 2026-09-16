@@ -100,6 +100,8 @@ final class L10n: ObservableObject {
         "pose.recalibrate": ("Recalibrate forward", "重新校准正前方", "正面を再キャリブレーション"),
         "pose.help": ("Sit up straight and look at the screen, then click. All angles are measured from this pose. Right turn and head-up are positive.", "坐正、平视屏幕时点一下，之后所有角度都相对这个姿态计算。右转、抬头为正。", "背筋を伸ばして画面をまっすぐ見た状態でクリックしてください。以降の角度はすべてこの姿勢を基準に計測します。右向きと上向きが正の値です。"),
 
+        "pose.required": ("Calibration required; automatic actions paused.", "请校准正前方；自动提醒已暂停。", "正面の設定が必要です。自動機能は一時停止中です。"),
+
         // blur action
         "blur.title": ("Blur screen when looking away", "看向别处时模糊屏幕", "よそ見したら画面をぼかす"),
         "blur.help": ("When your head turns left or right past the trigger angle and stays there, the screen blurs. It clears as soon as you look back.", "头向左或向右转过触发角度并停留一会儿，屏幕模糊；转回来即恢复。", "頭を左右にトリガー角度以上回してそのまま保つと、画面がぼけます。画面に視線を戻すとすぐに解除されます。"),
@@ -110,8 +112,8 @@ final class L10n: ObservableObject {
 
         // posture action
         "posture.title": ("Posture reminder", "坐姿提醒", "姿勢リマインダー"),
-        "posture.help": ("When you slouch, your head tilts up to keep looking at the screen. If pitch rises above the trigger angle and stays there, the screen blurs until you sit up. Press Esc to dismiss and pause for a minute. Head-up is positive; the angle may be 0 or negative if your calibrated pose wasn't perfectly straight.", "弯腰塌下去时头会仰起来看屏幕。Pitch 高于触发角度并持续一段时间，屏幕模糊，坐直即恢复。按 Esc 解除并暂停 1 分钟。抬头为正；校准时没坐太直的话，角度也可以设成 0 或负数。", "猫背になると、画面を見続けるために頭が上を向きます。Pitch がトリガー角度を超えてそのまま続くと、背筋を伸ばすまで画面がぼけます。Esc キーで解除して 1 分間一時停止します。上向きが正の値です。キャリブレーション時の姿勢が完全にまっすぐでなかった場合は、角度を 0 や負の値にしても構いません。"),
-        "posture.threshold": ("Trigger angle (now %@°)", "触发角度（当前 %@°）", "トリガー角度（現在 %@°）"),
+        "posture.help": ("Reminds when pitch is at or below the threshold for the hold time. Clears above threshold + 5 degrees for 0.8 s. Press Esc to pause for a minute.", "Pitch 小于等于触发角度并持续指定时间后提醒；高于阈值 + 5° 持续 0.8 秒后解除。按 Esc 暂停 1 分钟。", "Pitch がしきい値以下で指定時間続くと通知します。しきい値 + 5° を超えて 0.8 秒続くと解除します。Esc で 1 分間停止します。"),
+        "posture.threshold": ("Trigger at or below (now %@°)", "触发角度 ≤（当前 %@°）", "しきい値以下（現在 %@°）"),
         "posture.dwell": ("Hold before reminding", "持续多久后提醒", "リマインドまでの継続時間"),
         "posture.dismiss": ("Dismiss, pause 1 min", "解除并暂停 1 分钟", "解除して 1 分間停止"),
         "posture.reminding": ("Reminding", "提醒中", "リマインド中"),
