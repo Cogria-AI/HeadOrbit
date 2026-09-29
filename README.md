@@ -85,11 +85,11 @@ Hover the small ⓘ icons in the menu for a one-line explanation of each feature
 
 | Setting | What it does | Default |
 |---|---|---|
-| Up / down / left / right angles | Independent limits; exceeding any direction starts the blur delay | 35° each; existing horizontal preferences are preserved |
+| Up / down / left / right angles | Independent limits; exceeding any direction starts the blur delay | 35° each; up/down detection is off by default; existing horizontal preferences are preserved |
 | Delay before blur | How long you must stay turned away before it triggers, so a quick glance doesn't count | 0.6 s |
 | Dimming | Extra darkening on top of the blur | 0.15 |
 
-Automatic forward adjustment is enabled by default after manual calibration. It requires 8 seconds of stability within half of each directional limit, measured from both the current forward pose and the manual anchor, then adjusts at up to 0.5° per second. It pauses while blurred or beyond the posture limit, and resets on tracking interruption. Total correction in each direction is bounded to 50% of that direction’s trigger angle from the manual anchor (for example, a 50° left limit permits up to 25° left correction). Larger seating changes need manual recalibration. Posture reminders retain the manual reference. Headphone motion alone cannot confirm screen gaze; a small sustained turn can still be learned, so automatic adjustment can be disabled.
+Automatic forward adjustment is off by default and can be enabled after manual calibration. It requires 8 seconds of stability within half of each directional limit, measured from both the current forward pose and the manual anchor, then adjusts at up to 0.5° per second. It pauses while blurred or beyond the posture limit, and resets on tracking interruption. Total correction in each direction is bounded to 50% of that direction’s trigger angle from the manual anchor (for example, a 50° left limit permits up to 25° left correction). Larger seating changes need manual recalibration. Posture reminders retain the manual reference. Headphone motion alone cannot confirm screen gaze; a small sustained turn can still be learned, so automatic adjustment can be disabled.
 
 ### Posture reminder
 

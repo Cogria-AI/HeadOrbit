@@ -5,6 +5,7 @@ struct MenuView: View {
     @EnvironmentObject private var blur: LookAwayBlurAction
     @EnvironmentObject private var posture: PostureReminderAction
     @ObservedObject private var l10n = L10n.shared
+    @State private var contentHeight: CGFloat = 740
 
     var body: some View {
         ScrollView(.vertical) {
@@ -22,10 +23,16 @@ struct MenuView: View {
                 footer
             }
             .padding(14)
+            .frame(width: 300)
+            .fixedSize(horizontal: false, vertical: true)
+            .background(GeometryReader { geometry in
+                Color.clear.preference(key: MenuHeightKey.self, value: geometry.size.height)
+            })
         }
         // MenuBarExtra sizes its window from this view. A maximum alone lets
         // ScrollView collapse to its minimum height during window measurement.
-        .frame(width: 300, height: min(740, (NSScreen.main?.visibleFrame.height ?? 820) - 80))
+        .frame(width: 300, height: min(contentHeight, (NSScreen.main?.visibleFrame.height ?? 820) - 80))
+        .onPreferenceChange(MenuHeightKey.self) { if $0 > 0 { contentHeight = $0 } }
         .onAppear { tracker.refresh() }
     }
 
@@ -80,7 +87,7 @@ struct MenuView: View {
     private var poseSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             gauge(l10n.t("pose.yaw"), blur.forwardPose.yaw, highlight: blur.isEnabled && (blur.forwardPose.yaw < -blur.leftDegrees || blur.forwardPose.yaw > blur.rightDegrees))
-            gauge(l10n.t("pose.forwardPitch"), blur.forwardPose.pitch, highlight: blur.isEnabled && (blur.forwardPose.pitch < -blur.downDegrees || blur.forwardPose.pitch > blur.upDegrees))
+            gauge(l10n.t("pose.forwardPitch"), blur.forwardPose.pitch, highlight: blur.isEnabled && blur.verticalEnabled && (blur.forwardPose.pitch < -blur.downDegrees || blur.forwardPose.pitch > blur.upDegrees))
             gauge(l10n.t("pose.pitch"), tracker.pose.pitch, highlight: posture.isEnabled && posture.isOver(tracker.pose.pitch))
             HStack(spacing: 6) {
                 Button(l10n.t(tracker.isCalibrated ? "pose.recalibrate" : "pose.calibrate")) { tracker.recenter() }
@@ -101,8 +108,11 @@ struct MenuView: View {
                 info("blur.help")
             }
             Group {
+                Toggle(l10n.t("blur.vertical"), isOn: $blur.verticalEnabled)
                 labeledSlider(l10n.t("blur.up"), value: $blur.upDegrees, range: 1...90, step: 1, unit: "°")
+                    .disabled(!blur.verticalEnabled)
                 labeledSlider(l10n.t("blur.down"), value: $blur.downDegrees, range: 1...90, step: 1, unit: "°")
+                    .disabled(!blur.verticalEnabled)
                 labeledSlider(l10n.t("blur.left"), value: $blur.leftDegrees, range: 1...90, step: 1, unit: "°")
                 labeledSlider(l10n.t("blur.right"), value: $blur.rightDegrees, range: 1...90, step: 1, unit: "°")
                 labeledSlider(l10n.t("blur.dwell"), value: $blur.dwellSeconds, range: 0...2, step: 0.1, unit: "s")
@@ -252,4 +262,9 @@ struct MenuView: View {
             NSWorkspace.shared.open(url)
         }
     }
+}
+
+private struct MenuHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
 }

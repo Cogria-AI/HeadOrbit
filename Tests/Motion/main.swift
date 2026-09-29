@@ -1,5 +1,21 @@
 import Foundation
 
+let suite = "HeadOrbit.tests.\(UUID().uuidString)"
+let defaults = UserDefaults(suiteName: suite)!
+defer { defaults.removePersistentDomain(forName: suite) }
+let fresh = LookAwayBlurAction(defaults: defaults)
+assert(!fresh.verticalEnabled && !fresh.autoCalibrationEnabled)
+defaults.set(50.0, forKey: "blur.threshold")
+let upgraded = LookAwayBlurAction(defaults: defaults)
+assert(upgraded.leftDegrees == 50 && upgraded.rightDegrees == 50)
+assert(!upgraded.verticalEnabled && !upgraded.autoCalibrationEnabled)
+upgraded.verticalEnabled = true
+upgraded.autoCalibrationEnabled = true
+let restored = LookAwayBlurAction(defaults: defaults)
+assert(restored.verticalEnabled && restored.autoCalibrationEnabled)
+assert(pose(0, -80, at: 0).overshoot(left: 35, right: 35, up: 35, down: 35, includeVertical: false) < 0)
+assert(pose(0, -80, at: 0).overshoot(left: 35, right: 35, up: 35, down: 35, includeVertical: true) > 0)
+
 // Existing stability scenarios use a fixed test envelope.
 extension ForwardCalibration {
     mutating func update(_ pose: HeadPose, allowed: Bool) {

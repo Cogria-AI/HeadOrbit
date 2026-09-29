@@ -93,7 +93,8 @@ final class L10n: ObservableObject {
         "device.hint": ("Wear AirPods / Beats that support head tracking, and make sure they are connected to this Mac, not your iPhone.", "戴上支持头部追踪的 AirPods / Beats，并确认它连接的是这台 Mac，不是 iPhone。", "ヘッドトラッキング対応の AirPods / Beats を装着し、iPhone ではなくこの Mac に接続されていることを確認してください。"),
 
         // pose section
-        "pose.forwardPitch": ("Forward pitch", "离屏上下角度", "正面基準の上下角度"),
+        "pose.forwardPitch": ("Forward pitch", "上下偏转（相对正前方）", "正面基準の上下角度"),
+        "blur.vertical": ("Also detect up/down (opt-in)", "启用上下触发（默认关闭）", "上下の検出も有効にする（初期設定はオフ）"),
         "pose.auto": ("Adapt forward automatically", "自动微调正前方", "正面を自動微調整"),
         "pose.autoHelp": ("Calibrate manually first. Adapts after 8 s of stability near forward, within 50% of each directional trigger angle from that anchor. Posture reminders keep the manual reference. Recalibrate after larger changes.", "先手动校准。在正前方附近稳定 8 秒后自动微调，各方向最多修正对应触发角度的 50%（相对手动基准）。坐姿提醒保留手动基准；大幅调整后请重新校准。", "まず手動で校正してください。正面付近で8秒安定すると、手動基準から各方向のトリガー角度の50%以内で微調整します。姿勢の基準は変更しません。大きく動いたら再校正してください。"),
         "pose.yaw": ("Yaw", "左右转头 Yaw", "左右の向き Yaw"),
