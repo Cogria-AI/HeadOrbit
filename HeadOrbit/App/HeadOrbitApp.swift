@@ -2,33 +2,43 @@ import SwiftUI
 
 @main
 struct HeadOrbitApp: App {
-    @StateObject private var tracker: HeadTracker
-    @StateObject private var blurAction: LookAwayBlurAction
-    @StateObject private var postureAction: PostureReminderAction
-    @StateObject private var engine: ActionEngine
-
-    init() {
-        let tracker = HeadTracker()
-        let blur = LookAwayBlurAction()
-        let posture = PostureReminderAction()
-        let engine = ActionEngine(tracker: tracker, actions: [blur, posture])
-        _tracker = StateObject(wrappedValue: tracker)
-        _blurAction = StateObject(wrappedValue: blur)
-        _postureAction = StateObject(wrappedValue: posture)
-        _engine = StateObject(wrappedValue: engine)
-        tracker.start()
-        L10n.shared.applyAppearance()
-    }
+    // Own the models without subscribing the entire scene to every motion frame.
+    @StateObject private var runtime = HeadOrbitRuntime()
 
     var body: some Scene {
         MenuBarExtra {
             MenuView()
-                .environmentObject(tracker)
-                .environmentObject(blurAction)
-                .environmentObject(postureAction)
+                .environmentObject(runtime.tracker)
+                .environmentObject(runtime.blur)
+                .environmentObject(runtime.posture)
         } label: {
-            Image(nsImage: tracker.status.isTracking ? MenuBarIcon.connected : MenuBarIcon.disconnected)
+            TrackingStatusIcon(tracker: runtime.tracker)
         }
         .menuBarExtraStyle(.window)
+    }
+}
+
+private final class HeadOrbitRuntime: ObservableObject {
+    let tracker = HeadTracker()
+    let blur = LookAwayBlurAction()
+    let posture = PostureReminderAction()
+    let engine: ActionEngine
+
+    init() {
+        engine = ActionEngine(tracker: tracker, actions: [blur, posture])
+        tracker.start()
+        L10n.shared.applyAppearance()
+    }
+}
+
+private struct TrackingStatusIcon: View {
+    let tracker: HeadTracker
+    @State private var isTracking = false
+
+    var body: some View {
+        Image(nsImage: isTracking ? MenuBarIcon.connected : MenuBarIcon.disconnected)
+            .onReceive(tracker.$status.map(\.isTracking).removeDuplicates()) {
+                isTracking = $0
+            }
     }
 }

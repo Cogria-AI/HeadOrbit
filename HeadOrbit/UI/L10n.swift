@@ -93,6 +93,10 @@ final class L10n: ObservableObject {
         "device.hint": ("Wear AirPods / Beats that support head tracking, and make sure they are connected to this Mac, not your iPhone.", "戴上支持头部追踪的 AirPods / Beats，并确认它连接的是这台 Mac，不是 iPhone。", "ヘッドトラッキング対応の AirPods / Beats を装着し、iPhone ではなくこの Mac に接続されていることを確認してください。"),
 
         // pose section
+        "pose.forwardPitch": ("Forward pitch", "上下偏转（相对正前方）", "正面基準の上下角度"),
+        "blur.vertical": ("Also detect up/down (opt-in)", "启用上下触发（默认关闭）", "上下の検出も有効にする（初期設定はオフ）"),
+        "pose.auto": ("Adapt forward automatically", "自动微调正前方", "正面を自動微調整"),
+        "pose.autoHelp": ("Calibrate manually first. Adapts after 8 s of stability near forward, within 50% of each directional trigger angle from that anchor. Posture reminders keep the manual reference. Recalibrate after larger changes.", "先手动校准。在正前方附近稳定 8 秒后自动微调，各方向最多修正对应触发角度的 50%（相对手动基准）。坐姿提醒保留手动基准；大幅调整后请重新校准。", "まず手動で校正してください。正面付近で8秒安定すると、手動基準から各方向のトリガー角度の50%以内で微調整します。姿勢の基準は変更しません。大きく動いたら再校正してください。"),
         "pose.yaw": ("Yaw", "左右转头 Yaw", "左右の向き Yaw"),
         "pose.pitch": ("Pitch", "点头 Pitch", "上下の向き Pitch"),
         "pose.roll": ("Roll", "歪头 Roll", "傾き Roll"),
@@ -102,8 +106,11 @@ final class L10n: ObservableObject {
 
         // blur action
         "blur.title": ("Blur screen when looking away", "看向别处时模糊屏幕", "よそ見したら画面をぼかす"),
-        "blur.help": ("When your head turns left or right past the trigger angle and stays there, the screen blurs. It clears as soon as you look back.", "头向左或向右转过触发角度并停留一会儿，屏幕模糊；转回来即恢复。", "頭を左右にトリガー角度以上回してそのまま保つと、画面がぼけます。画面に視線を戻すとすぐに解除されます。"),
-        "blur.threshold": ("Trigger angle", "触发角度", "トリガー角度"),
+        "blur.help": ("Each direction has its own angle. Looking beyond any limit for the delay blurs the screen; returning inside all limits clears it.", "上、下、左、右分别设定角度。任一方向越界并持续指定时间后模糊，回到全部阈值内后恢复。", "上下左右の角度を個別に設定します。いずれかを超えて一定時間続くとぼかし、すべての範囲内に戻ると解除します。"),
+        "blur.up": ("Look up", "抬头触发角度", "上向きの角度"),
+        "blur.down": ("Look down", "低头触发角度", "下向きの角度"),
+        "blur.left": ("Turn left", "左转触发角度", "左向きの角度"),
+        "blur.right": ("Turn right", "右转触发角度", "右向きの角度"),
         "blur.dwell": ("Delay before blur", "转开多久后触发", "ぼかすまでの待ち時間"),
         "blur.dim": ("Dimming", "压暗程度", "暗さ"),
         "blur.blurred": ("Blurred", "已模糊", "ぼかし中"),

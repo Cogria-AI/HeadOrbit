@@ -20,9 +20,13 @@ final class ActionEngine: ObservableObject {
 
     init(tracker: HeadTracker, actions: [HeadAction]) {
         self.actions = actions
+        let blur = actions.compactMap { $0 as? LookAwayBlurAction }.first
+        let posture = actions.compactMap { $0 as? PostureReminderAction }.first
 
         tracker.samples
-            .sink { [weak self] pose in
+            .sink { [weak self, weak tracker] pose in
+                let postureUnsafe = posture.map { $0.isEnabled && ($0.isReminding || $0.isOver(pose.pitch)) } ?? false
+                blur?.updateForward(pose, allowed: tracker?.isCalibrated == true && !postureUnsafe)
                 self?.actions.forEach { if $0.isEnabled { $0.process(pose) } }
             }
             .store(in: &bag)
