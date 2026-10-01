@@ -9,23 +9,29 @@ struct HeadOrbitApp: App {
         MenuBarExtra {
             MenuView()
                 .environmentObject(runtime.tracker)
-                .environmentObject(runtime.blur)
-                .environmentObject(runtime.posture)
+                .environmentObject(runtime.engine)
         } label: {
             TrackingStatusIcon(tracker: runtime.tracker)
         }
         .menuBarExtraStyle(.window)
+
+        Window("HeadOrbit", id: "settings") {
+            SettingsView()
+                .environmentObject(runtime.tracker)
+                .environmentObject(runtime.store)
+                .environmentObject(runtime.engine)
+        }
+        .defaultSize(width: 820, height: 620)
     }
 }
 
 private final class HeadOrbitRuntime: ObservableObject {
     let tracker = HeadTracker()
-    let blur = LookAwayBlurAction()
-    let posture = PostureReminderAction()
-    let engine: ActionEngine
+    let store = SceneStore()
+    let engine: SceneEngine
 
     init() {
-        engine = ActionEngine(tracker: tracker, actions: [blur, posture])
+        engine = SceneEngine(tracker: tracker, store: store)
         tracker.start()
         L10n.shared.applyAppearance()
     }

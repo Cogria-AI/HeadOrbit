@@ -10,11 +10,6 @@ struct HeadPose: Equatable {
 
     static let zero = HeadPose(yaw: 0, pitch: 0, roll: 0, timestamp: 0)
 
-    /// Positive if any direction exceeds its own limit; negative inside all limits.
-    func overshoot(left: Double, right: Double, up: Double, down: Double, includeVertical: Bool = true) -> Double {
-        max(-yaw - left, yaw - right, includeVertical ? max(pitch - up, -pitch - down) : -.infinity)
-    }
-
     init(yaw: Double, pitch: Double, roll: Double, timestamp: TimeInterval) {
         self.yaw = yaw; self.pitch = pitch; self.roll = roll; self.timestamp = timestamp
     }

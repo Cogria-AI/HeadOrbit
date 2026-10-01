@@ -22,7 +22,8 @@ final class HeadTracker: NSObject, ObservableObject {
 
     @Published private(set) var status: Status = .waitingForPermission
     @Published private(set) var authorization: CMAuthorizationStatus = CMHeadphoneMotionManager.authorizationStatus()
-    @Published private(set) var pose: HeadPose = .zero
+    /// 不发布：每帧都变，发布会让所有订阅 tracker 的界面每帧重绘。界面要实时姿态请订阅 SceneEngine.feed
+    private(set) var pose: HeadPose = .zero
     @Published private(set) var isCalibrated = false
     @Published private(set) var lastError: String?
     /// 手动重连后的冷却：期间按钮禁用并显示「连接中」，避免连点把正在建立的会话拆掉

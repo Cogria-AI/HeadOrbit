@@ -1,42 +1,26 @@
 import SwiftUI
 
+/// 菜单栏面板：只用来快速看耳机在不在工作、灵不灵敏。配置都在设置窗口里
 struct MenuView: View {
     @EnvironmentObject private var tracker: HeadTracker
-    @EnvironmentObject private var blur: LookAwayBlurAction
-    @EnvironmentObject private var posture: PostureReminderAction
+    @EnvironmentObject private var engine: SceneEngine
     @ObservedObject private var l10n = L10n.shared
-    @State private var contentHeight: CGFloat = 740
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        ScrollView(.vertical) {
-            VStack(alignment: .leading, spacing: 12) {
-                header
-                Divider()
-                deviceSection
-                Divider()
-                poseSection
-                Divider()
-                blurSection
-                Divider()
-                postureSection
-                Divider()
-                footer
-            }
-            .padding(14)
-            .frame(width: 300)
-            .fixedSize(horizontal: false, vertical: true)
-            .background(GeometryReader { geometry in
-                Color.clear.preference(key: MenuHeightKey.self, value: geometry.size.height)
-            })
+        VStack(alignment: .leading, spacing: 12) {
+            header
+            deviceHint
+            Divider()
+            MenuPose(feed: engine.feed)
+            calibrateRow
+            Divider()
+            footer
         }
-        // MenuBarExtra sizes its window from this view. A maximum alone lets
-        // ScrollView collapse to its minimum height during window measurement.
-        .frame(width: 300, height: min(contentHeight, (NSScreen.main?.visibleFrame.height ?? 820) - 80))
-        .onPreferenceChange(MenuHeightKey.self) { if $0 > 0 { contentHeight = $0 } }
+        .padding(14)
+        .frame(width: 300)
         .onAppear { tracker.refresh() }
     }
-
-    // MARK: Sections
 
     private var header: some View {
         HStack {
@@ -45,226 +29,90 @@ struct MenuView: View {
                 .frame(width: 8, height: 8)
             Text("HeadOrbit").font(.headline)
             Spacer()
-            Text(statusText)
+            Text(StatusText.tracker(tracker))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
     }
 
-    private var deviceSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            row(l10n.t("device.systemSupport"), l10n.t(tracker.isDeviceMotionAvailable ? "device.yes" : "device.no"))
-            HStack {
-                row(l10n.t("device.permission"), authorizationText)
-                if tracker.authorization == .denied || tracker.authorization == .restricted {
-                    Button(l10n.t("device.openSettings")) { openMotionPrivacySettings() }
-                        .controlSize(.small)
-                }
-            }
-            if case .tracking(let side) = tracker.status {
-                row(l10n.t("device.source"), sideText(side))
-            } else if tracker.authorization == .authorized, tracker.headphonesRoutedAway {
-                HStack(spacing: 6) {
-                    Text(l10n.t("status.routedAway")).font(.callout).foregroundStyle(.secondary)
-                    info("device.routedAwayHint")
-                }
-            } else if tracker.authorization == .authorized {
-                HStack(spacing: 6) {
-                    Text(l10n.t("status.waitingHeadphones")).font(.callout).foregroundStyle(.secondary)
-                    info("device.hint")
+    @ViewBuilder
+    private var deviceHint: some View {
+        if !tracker.status.isTracking, tracker.authorization == .authorized {
+            HStack(spacing: 6) {
+                if tracker.headphonesRoutedAway {
+                    InfoIcon("device.routedAwayHint")
+                } else {
+                    InfoIcon("device.hint")
                     Spacer()
                     Button(l10n.t(tracker.isReconnecting ? "device.reconnecting" : "device.reconnect")) { tracker.reconnect() }
                         .controlSize(.small)
                         .disabled(tracker.isReconnecting)
                 }
             }
-            if let err = tracker.lastError {
-                Text(err).font(.caption).foregroundStyle(.red)
-            }
+        } else if tracker.authorization == .denied || tracker.authorization == .restricted {
+            Button(l10n.t("device.openSettings")) { Permissions.openMotionSettings() }
+                .controlSize(.small)
+        }
+        if let err = tracker.lastError {
+            Text(err).font(.caption).foregroundStyle(.red)
         }
     }
 
-    private var poseSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            gauge(l10n.t("pose.yaw"), blur.forwardPose.yaw, highlight: blur.isEnabled && (blur.forwardPose.yaw < -blur.leftDegrees || blur.forwardPose.yaw > blur.rightDegrees))
-            gauge(l10n.t("pose.forwardPitch"), blur.forwardPose.pitch, highlight: blur.isEnabled && blur.verticalEnabled && (blur.forwardPose.pitch < -blur.downDegrees || blur.forwardPose.pitch > blur.upDegrees))
-            gauge(l10n.t("pose.pitch"), tracker.pose.pitch, highlight: posture.isEnabled && posture.isOver(tracker.pose.pitch))
-            HStack(spacing: 6) {
-                Button(l10n.t(tracker.isCalibrated ? "pose.recalibrate" : "pose.calibrate")) { tracker.recenter() }
-                    .disabled(!tracker.status.isTracking)
-                    .controlSize(.small)
-                info("pose.help")
-            }
-            Toggle(l10n.t("pose.auto"), isOn: $blur.autoCalibrationEnabled)
-                .font(.callout)
-            Text(l10n.t("pose.autoHelp")).font(.caption).foregroundStyle(.secondary)
-        }
-    }
-
-    private var blurSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Toggle(l10n.t("blur.title"), isOn: $blur.isEnabled)
-                info("blur.help")
-            }
-            Group {
-                Toggle(l10n.t("blur.vertical"), isOn: $blur.verticalEnabled)
-                labeledSlider(l10n.t("blur.up"), value: $blur.upDegrees, range: 1...90, step: 1, unit: "°")
-                    .disabled(!blur.verticalEnabled)
-                labeledSlider(l10n.t("blur.down"), value: $blur.downDegrees, range: 1...90, step: 1, unit: "°")
-                    .disabled(!blur.verticalEnabled)
-                labeledSlider(l10n.t("blur.left"), value: $blur.leftDegrees, range: 1...90, step: 1, unit: "°")
-                labeledSlider(l10n.t("blur.right"), value: $blur.rightDegrees, range: 1...90, step: 1, unit: "°")
-                labeledSlider(l10n.t("blur.dwell"), value: $blur.dwellSeconds, range: 0...2, step: 0.1, unit: "s")
-                labeledSlider(l10n.t("blur.dim"), value: $blur.dimAmount, range: 0...0.6, step: 0.05, unit: "")
-            }
-            .disabled(!blur.isEnabled)
-            HStack {
-                Button(l10n.t("common.preview")) { blur.preview() }
-                    .controlSize(.small)
-                Spacer()
-                if blur.isBlurred {
-                    Text(l10n.t("blur.blurred")).font(.caption).foregroundStyle(.secondary)
-                }
-            }
-        }
-    }
-
-    private var postureSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Toggle(l10n.t("posture.title"), isOn: $posture.isEnabled)
-                info("posture.help")
-            }
-            Group {
-                labeledSlider(l10n.t("posture.threshold", String(format: "%+.0f", tracker.pose.pitch)),
-                              value: $posture.thresholdDegrees, range: -90...90, step: 1, unit: "°")
-                labeledSlider(l10n.t("posture.dwell"), value: $posture.dwellSeconds, range: 1...30, step: 1, unit: "s")
-            }
-            .disabled(!posture.isEnabled)
-            HStack {
-                Button(l10n.t("common.preview")) { posture.preview() }
-                    .controlSize(.small)
-                if posture.isReminding {
-                    Button(l10n.t("posture.dismiss")) { posture.dismiss() }
-                        .controlSize(.small)
-                }
-                Spacer()
-                if posture.isReminding {
-                    Text(l10n.t("posture.reminding")).font(.caption).foregroundStyle(.orange)
-                } else if let until = posture.snoozedUntil, until > Date() {
-                    Text(l10n.t("posture.snoozed", until.formatted(date: .omitted, time: .shortened)))
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-            }
+    private var calibrateRow: some View {
+        HStack(spacing: 6) {
+            Button(l10n.t(tracker.isCalibrated ? "pose.recalibrate" : "pose.calibrate")) { tracker.recenter() }
+                .disabled(!tracker.status.isTracking)
+                .controlSize(.small)
+            InfoIcon("pose.help")
         }
     }
 
     private var footer: some View {
         HStack(spacing: 8) {
-            Picker(l10n.t("settings.language"), selection: $l10n.language) {
-                ForEach(Language.allCases) { Text(l10n.t("lang.\($0.rawValue)")).tag($0) }
-            }
-            Picker(l10n.t("settings.appearance"), selection: $l10n.appearance) {
-                ForEach(Appearance.allCases) { Text(l10n.t("appearance.\($0.rawValue)")).tag($0) }
-            }
+            Button(l10n.t("menu.settings")) { open(nil) }
+                .keyboardShortcut(",")
+            Button(l10n.t("menu.about")) { open(.about) }
             Spacer()
+            Text("v" + StatusText.version).font(.caption).foregroundStyle(.secondary)
             Button(l10n.t("common.quit")) { NSApplication.shared.terminate(nil) }
+                .keyboardShortcut("q")
         }
         .controlSize(.small)
-        .labelsHidden()
     }
 
-    // MARK: Text helpers
-
-    private var statusText: String {
-        switch tracker.status {
-        case .unsupported: return l10n.t("status.unsupported")
-        case .denied: return l10n.t("status.denied")
-        case .restricted: return l10n.t("status.restricted")
-        case .waitingForPermission: return l10n.t("status.waitingPermission")
-        case .waitingForHeadphones: return l10n.t(tracker.headphonesRoutedAway ? "status.routedAway" : "status.waitingHeadphones")
-        case .tracking(let side): return l10n.t("status.tracking", sideText(side))
-        }
+    private func open(_ page: SettingsPage?) {
+        if let page { SettingsRouter.shared.selection = page }
+        openWindow(id: "settings")
+        NSApplication.shared.activate(ignoringOtherApps: true)
     }
+}
 
-    private func sideText(_ side: SensorSide) -> String {
-        switch side {
-        case .left: return l10n.t("side.left")
-        case .right: return l10n.t("side.right")
-        case .unknown: return l10n.t("side.unknown")
-        }
-    }
+/// 只有它订阅每帧姿态
+private struct MenuPose: View {
+    @ObservedObject var feed: PoseFeed
+    @ObservedObject private var l10n = L10n.shared
 
-    private var authorizationText: String {
-        switch tracker.authorization {
-        case .authorized: return l10n.t("auth.authorized")
-        case .denied: return l10n.t("auth.denied")
-        case .restricted: return l10n.t("auth.restricted")
-        case .notDetermined: return l10n.t("auth.notDetermined")
-        @unknown default: return l10n.t("auth.unknown")
-        }
-    }
-
-    // MARK: View helpers
-
-    /// 小 ⓘ 图标，鼠标悬停显示说明
-    private func info(_ key: String) -> some View {
-        Image(systemName: "info.circle")
-            .foregroundStyle(.secondary)
-            .help(l10n.t(key))
-    }
-
-    private func row(_ label: String, _ value: String) -> some View {
-        HStack {
-            Text(label).foregroundStyle(.secondary)
-            Spacer()
-            Text(value)
-        }
-        .font(.callout)
-    }
-
-    private func gauge(_ label: String, _ value: Double, highlight: Bool) -> some View {
-        HStack {
-            Text(label).font(.callout).foregroundStyle(.secondary).frame(width: 110, alignment: .leading)
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.secondary.opacity(0.15)).frame(height: 6)
-                GeometryReader { geo in
-                    let half = geo.size.width / 2
-                    let x = half + (max(-90, min(90, value)) / 90) * half
-                    Capsule()
-                        .fill(highlight ? Color.orange : Color.accentColor)
-                        .frame(width: 6, height: 6)
-                        .offset(x: x - 3)
-                }
-            }
-            .frame(height: 6)
-            Text(String(format: "%+.0f°", value))
-                .font(.system(.callout, design: .monospaced))
-                .frame(width: 48, alignment: .trailing)
-        }
-    }
-
-    private func labeledSlider(_ label: String, value: Binding<Double>, range: ClosedRange<Double>, step: Double, unit: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack {
-                Text(label).font(.callout).foregroundStyle(.secondary)
-                Spacer()
-                Text(String(format: step < 1 ? "%.2f%@" : (range.lowerBound < 0 ? "%+.0f%@" : "%.0f%@"), value.wrappedValue, unit))
-                    .font(.system(.callout, design: .monospaced))
-            }
-            Slider(value: value, in: range, step: step)
-        }
-    }
-
-    private func openMotionPrivacySettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Motion") {
-            NSWorkspace.shared.open(url)
+    var body: some View {
+        let p = feed.forward
+        let active = feed.active
+        VStack(alignment: .leading, spacing: 6) {
+            AngleGauge(label: l10n.t("pose.yaw"), value: p.yaw, highlight: !active.isDisjoint(with: [.turnLeft, .turnRight]))
+            AngleGauge(label: l10n.t("pose.pitch"), value: p.pitch, highlight: !active.isDisjoint(with: [.lookUp, .lookDown]))
+            AngleGauge(label: l10n.t("pose.roll"), value: p.roll, highlight: !active.isDisjoint(with: [.tiltLeft, .tiltRight]))
         }
     }
 }
 
-private struct MenuHeightKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
+enum Permissions {
+    static func openMotionSettings() {
+        open("x-apple.systempreferences:com.apple.preference.security?Privacy_Motion")
+    }
+
+    static func openAccessibilitySettings() {
+        open("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
+    }
+
+    private static func open(_ s: String) {
+        if let url = URL(string: s) { NSWorkspace.shared.open(url) }
+    }
 }

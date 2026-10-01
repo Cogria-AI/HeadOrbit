@@ -1,30 +1,105 @@
 import Foundation
 
-let suite = "HeadOrbit.tests.\(UUID().uuidString)"
-let defaults = UserDefaults(suiteName: suite)!
-defer { defaults.removePersistentDomain(forName: suite) }
-let fresh = LookAwayBlurAction(defaults: defaults)
-assert(!fresh.verticalEnabled && !fresh.autoCalibrationEnabled)
-defaults.set(50.0, forKey: "blur.threshold")
-let upgraded = LookAwayBlurAction(defaults: defaults)
-assert(upgraded.leftDegrees == 50 && upgraded.rightDegrees == 50)
-assert(!upgraded.verticalEnabled && !upgraded.autoCalibrationEnabled)
-upgraded.verticalEnabled = true
-upgraded.autoCalibrationEnabled = true
-let restored = LookAwayBlurAction(defaults: defaults)
-assert(restored.verticalEnabled && restored.autoCalibrationEnabled)
-assert(pose(0, -80, at: 0).overshoot(left: 35, right: 35, up: 35, down: 35, includeVertical: false) < 0)
-assert(pose(0, -80, at: 0).overshoot(left: 35, right: 35, up: 35, down: 35, includeVertical: true) > 0)
+func freshDefaults() -> UserDefaults {
+    let suite = "HeadOrbit.tests.\(UUID().uuidString)"
+    let d = UserDefaults(suiteName: suite)!
+    d.removePersistentDomain(forName: suite)
+    return d
+}
+
+// Fresh install: only the privacy scene is on, turning left/right blurs; up/down/tilt do nothing.
+let fresh = SceneStore(defaults: freshDefaults())
+assert(fresh.scenes.map(\.id) == ["privacy", "posture", "voice"])
+assert(fresh.scenes.filter(\.isEnabled).map(\.id) == ["privacy"])
+assert(fresh.scene("privacy")!.gestures == [.turnLeft, .turnRight])
+assert(!fresh.autoCalibration)
+
+// Upgrade from v0.1.x keeps the old behaviour.
+let legacy = freshDefaults()
+legacy.set(50.0, forKey: "blur.threshold")
+legacy.set(20.0, forKey: "blur.right")
+legacy.set(0.3, forKey: "blur.dim")
+legacy.set(true, forKey: "blur.verticalEnabled")
+legacy.set(true, forKey: "posture.enabled")
+legacy.set(-5.0, forKey: "posture.threshold.v2")
+legacy.set(true, forKey: "blur.autoCalibration")
+let upgraded = SceneStore(defaults: legacy)
+let privacy = upgraded.scene("privacy")!
+assert(privacy.bindings.first { $0.gesture == .turnLeft }!.threshold == 50)
+assert(privacy.bindings.first { $0.gesture == .turnRight }!.threshold == 20)
+assert(privacy.bindings.allSatisfy { $0.behavior == .blur(dim: 0.3) })
+assert(privacy.gestures == [.turnLeft, .turnRight, .lookDown], "Posture keeps look-up when both were on")
+assert(upgraded.scene("posture")!.isEnabled && upgraded.scene("posture")!.bindings[0].threshold == -5)
+assert(upgraded.autoCalibration)
+assert(upgraded.conflicts(for: "posture").isEmpty)
+// Settings persist under the new key and win over legacy keys afterwards.
+upgraded.setEnabled("privacy", false)
+assert(!SceneStore(defaults: legacy).scene("privacy")!.isEnabled)
+
+// One gesture belongs to at most one enabled scene.
+let store = SceneStore(defaults: freshDefaults())
+let custom = store.addScene(named: "Mine")
+store.setBehavior(.blur, for: .turnLeft, in: custom)
+let conflicts = store.setEnabled(custom, true)
+assert(conflicts.count == 1 && conflicts[0].0 == .turnLeft && conflicts[0].1.id == "privacy")
+assert(!store.scene(custom)!.isEnabled)
+store.setEnabled("privacy", false)
+assert(store.setEnabled(custom, true).isEmpty && store.scene(custom)!.isEnabled)
+store.setBehavior(.holdKey, for: .turnLeft, in: custom)
+assert(store.scene(custom)!.bindings.count == 1, "A scene lists each gesture once")
+assert(store.scene(custom)!.bindings[0].behavior == .holdKey(.returnKey))
+store.setBehavior(.posture, for: .lookUp, in: custom)
+assert(store.scene(custom)!.bindings[1].threshold == 15 && store.scene(custom)!.bindings[1].dwell == 5)
+store.setBehavior(nil, for: .turnLeft, in: custom)
+assert(store.scene(custom)!.gestures == [.lookUp])
+assert(Axis.tilt.value(pose(roll: 20, at: 0)) == 20 * Gesture.rollSign && Gesture.lookDown.axis == .nod)
+store.delete("privacy")
+assert(store.scene("privacy") != nil, "Built-in scenes cannot be deleted")
+store.delete(custom)
+assert(store.scene(custom) == nil)
+
+// Gesture values.
+func pose(_ yaw: Double = 0, _ pitch: Double = 0, roll: Double = 0, at time: Double) -> HeadPose {
+    HeadPose(yaw: yaw, pitch: pitch, roll: roll, timestamp: time)
+}
+assert(Gesture.turnLeft.value(pose(-40, at: 0)) == 40 && Gesture.turnRight.value(pose(-40, at: 0)) == -40)
+assert(Gesture.lookDown.value(pose(0, -30, at: 0)) == 30)
+assert(Gesture.tiltRight.value(pose(roll: 20, at: 0)) == 20 * Gesture.rollSign)
+assert(Gesture.tiltRight.value(pose(40, 30, roll: 20, at: 0)) == 20 * Gesture.rollSign, "Each gesture reads only its own axis")
+
+// Runtime: hold-style flips on entry and release on return; disabled scenes are ignored.
+var voice = SceneConfig.voice
+voice.isEnabled = true
+var runtime = SceneRuntime(scenes: [SceneConfig.privacy, voice, SceneConfig.posture])
+assert(Set(runtime.slots.keys) == [.turnLeft, .turnRight, .tiltLeft, .tiltRight])
+let leftRoll = -20 * Gesture.rollSign
+assert(runtime.process(corrected: pose(roll: leftRoll, at: 0), raw: pose(at: 0)).isEmpty)
+let down = runtime.process(corrected: pose(roll: leftRoll, at: 0.25), raw: pose(at: 0.25))
+assert(down.count == 1 && down[0].0 == .tiltLeft && down[0].1)
+assert(runtime.process(corrected: pose(roll: leftRoll * 0.6, at: 1), raw: pose(at: 1)).isEmpty, "Hysteresis keeps it held")
+assert(runtime.process(corrected: pose(at: 2), raw: pose(at: 2)).isEmpty)
+let up = runtime.process(corrected: pose(at: 2.15), raw: pose(at: 2.15))
+assert(up.count == 1 && up[0].0 == .tiltLeft && !up[0].1)
+// A big tilt drags yaw/pitch along; once held it must stay held until the head comes back.
+var tiltRuntime = SceneRuntime(scenes: [voice])
+_ = tiltRuntime.process(corrected: pose(roll: leftRoll, at: 10), raw: pose(at: 10))
+assert(tiltRuntime.process(corrected: pose(roll: leftRoll, at: 10.25), raw: pose(at: 10.25)).first! == (.tiltLeft, true))
+assert(tiltRuntime.process(corrected: pose(30, 28, roll: leftRoll * 2.5, at: 11), raw: pose(at: 11)).isEmpty,
+       "Tilting further must not release")
+assert(tiltRuntime.process(corrected: pose(30, 28, roll: leftRoll * 2.5, at: 12), raw: pose(at: 12)).isEmpty)
+// Posture reads the manual reference, not the auto-adjusted one.
+var posture = SceneConfig.posture
+posture.isEnabled = true
+var postureRuntime = SceneRuntime(scenes: [posture])
+_ = postureRuntime.process(corrected: pose(0, 0, at: 0), raw: pose(0, 20, at: 0))
+assert(postureRuntime.process(corrected: pose(0, 0, at: 5.1), raw: pose(0, 20, at: 5.1)).first! == (.lookUp, true))
+assert(postureRuntime.process(corrected: pose(at: 6), raw: pose(0, 20, at: 6), skip: [.lookUp]).isEmpty)
 
 // Existing stability scenarios use a fixed test envelope.
 extension ForwardCalibration {
     mutating func update(_ pose: HeadPose, allowed: Bool) {
         update(pose, allowed: allowed, yawRange: -10...10, pitchRange: -10...10)
     }
-}
-
-func pose(_ yaw: Double = 0, _ pitch: Double = 0, at time: Double) -> HeadPose {
-    HeadPose(yaw: yaw, pitch: pitch, roll: 0, timestamp: time)
 }
 
 var calibration = ForwardCalibration()
@@ -75,16 +150,9 @@ for (yaw, pitch, accepted) in [(-24.0, 19.0, true), (14.0, -29.0, true),
     }
     assert(adaptive.yaw == priorYaw)
 }
-for (sample, expected) in [(pose(-11, at: 0), 1.0), (pose(21, at: 0), 1.0),
-                           (pose(0, 31, at: 0), 1.0), (pose(0, -41, at: 0), 1.0),
-                           (pose(11, at: 0), -9.0), (pose(0, -31, at: 0), -9.0),
-                           (pose(0, 30, at: 0), 0.0)] {
-    assert(sample.overshoot(left: 10, right: 20, up: 30, down: 40) == expected,
-           "Each direction must use its own signed threshold")
-}
 assert(!trigger.update(2, at: 0))
 assert(trigger.update(2, at: 0.7) && trigger.isActive)
 assert(!trigger.update(-0.1, at: 1))
 assert(!trigger.update(-1, at: 2))
 assert(trigger.update(-1, at: 2.3) && !trigger.isActive)
-print("PASS: four directional limits, calibration stability, bounds, pause, stream gaps, motion rejection and dwell recovery")
+print("PASS: scenes, legacy migration, conflicts, gestures, runtime, calibration stability, bounds, pause, stream gaps, motion rejection and dwell recovery")
