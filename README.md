@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <b>English</b> · <a href="README.zh-CN.md">简体中文</a> · <a href="https://headorbit.com">headorbit.com</a>
+  <b>English</b> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.ja.md">日本語</a> · <a href="https://headorbit.com">headorbit.com</a>
 </p>
 
 <p align="center">
@@ -12,22 +12,38 @@
 
 # HeadOrbit
 
-A tiny macOS menu bar app that reads head motion from your AirPods and turns it into small, useful things on screen.
+A small macOS menu bar app that reads head motion from your AirPods and turns it into actions on your Mac.
 
-Look away from the screen, and it blurs. Slouch until your chin comes up, and it nudges you to sit straight. That's it for now.
+Turn away to talk to someone and the screen blurs. Tilt your head left and your voice input starts listening; straighten up and it stops. Tilt right and it presses Return. Your hands stay on the keyboard, or off it.
 
 > **Status: an experiment, made for fun.**
 > Inspired by [this post by @bryllim_](https://x.com/bryllim_/status/2099049704822907277). This is a weekend-project-grade tool, not a product. Expect rough edges.
 
-## Features
+## What's new in 2.0
 
-- **Blur when you look away.** Turn your head left or right past a set angle and the whole screen softly blurs. Look back and it clears.
-- **Posture reminder.** Calibrate while sitting straight. When you slump and your head tilts up to keep looking at the screen, HeadOrbit blurs the screen and shows a reminder until you sit up. Press `Esc` to dismiss and pause it for a minute.
-- **Live head angles** in the menu, so you can see what the earbuds see.
-- **One-click calibration.** Whatever pose you're in when you click becomes "forward".
-- **Menu bar status icon.** Outline when nothing is connected, filled when your earbuds are streaming.
-- **English / 中文 / 日本語**, follows the system language, switchable in the menu.
-- **Light / Dark / System** appearance for the panel.
+- **Gestures and actions are separate.** HeadOrbit reads three head movements: turn, nod and tilt. Each has two directions, and each direction can do one thing: blur the screen, show a posture reminder, press a key, hold a key, or nothing.
+- **Scenes.** A scene is a set of those choices that you switch on or off as a unit. Three come built in, and you can make your own.
+- **Tilt is new.** Earlier versions only used turn and nod.
+- **Key actions.** "Press a key" fires once per gesture. "Hold a key" keeps the key down while you hold the gesture and releases it when you return to forward, which is what push-to-talk voice input needs.
+- **Settings window.** The menu bar panel now only shows status and live angles. Everything else lives in a separate window.
+
+Settings from 0.1.x carry over automatically.
+
+## Built-in scenes
+
+| Scene | Gestures | Default |
+|---|---|---|
+| Privacy blur | Turn left or right past 35° for 0.6 s: blur the screen | On |
+| Posture reminder | Head tilts up past +15° for 5 s (you slouched): blur with a reminder, `Esc` pauses it for a minute | Off |
+| Voice input | Tilt left past 15°: hold `Fn`. Tilt right past 15°: press `Return` | Off |
+
+Voice input is meant for input methods that start dictation while `Fn` is held down. We tested it with Doubao IME. Tilt left, speak, straighten up, tilt right to send.
+
+You can change any angle, delay or key, duplicate a built-in scene, or start an empty one. A direction can belong to only one enabled scene at a time; if two scenes want the same direction, HeadOrbit tells you which one is using it.
+
+<p align="center">
+  <img src="docs/settings.png" alt="HeadOrbit settings window" width="640">
+</p>
 
 Nothing leaves your Mac. No network, no screen recording, no accounts.
 
@@ -62,58 +78,52 @@ open build/Build/Products/Debug/HeadOrbit.app
 
 Xcode 15 or later is required.
 
-### First launch
+### Permissions
 
-macOS asks for **Motion & Fitness** access. Allow it, that's the only permission HeadOrbit needs. HeadOrbit lives in the menu bar only, so there is no Dock icon and no window to look for.
+- **Motion & Fitness** is asked on first launch. Blur and posture reminders need nothing else.
+- **Accessibility** is only needed when a scene presses keys. macOS asks the first time a key gesture fires. Allow HeadOrbit in System Settings → Privacy & Security → Accessibility.
+
+HeadOrbit lives in the menu bar only, so there is no Dock icon.
 
 ## Usage
 
 1. Put on your AirPods and make sure they're connected to the Mac.
-2. Click the HeadOrbit icon in the menu bar. The header should read **Tracking (left)** or **Tracking (right)**, telling you which earbud is providing data.
-3. Sit straight, look at the screen, and click **Set current pose as forward**. Every angle is measured from this pose, so recalibrate whenever you move your chair or your mood.
-4. Turn on the features you want and tune the sliders.
+2. Click the HeadOrbit icon in the menu bar. The header should read **Tracking (left)** or **Tracking (right)**.
+3. Sit straight, look at the screen, and click **Set current pose as forward**. Every angle is measured from this pose.
+4. Open **Settings…** (`⌘,`) to turn scenes on and tune them.
 
 <p align="center">
-  <img src="docs/panel.png" alt="HeadOrbit menu" width="320">
+  <img src="docs/panel.png" alt="HeadOrbit menu" width="300">
 </p>
 
-Hover the small ⓘ icons in the menu for a one-line explanation of each feature.
+The panel shows turn, nod and tilt live. Right turn, head up and right tilt are positive. A dot turns orange while a gesture is active.
 
-## Configuration
+## Settings window
 
-### Blur when looking away
+- **Scenes.** Each scene page has a switch and three sections: turn, nod, tilt. Each section has a live gauge with orange marks at the trigger angles, then one row per direction: pick an action, then set its angle, how long to hold before it fires, and the key or dimming.
+- **Calibration.** Recalibrate forward, and turn on automatic forward adjustment.
+- **General.** Language (English, 中文, 日本語), appearance, headphone status and both permissions.
+- **About.** Version, [headorbit.com](https://headorbit.com) and a link to the author.
 
-| Setting | What it does | Default |
-|---|---|---|
-| Up / down / left / right angles | Independent limits; exceeding any direction starts the blur delay | 35° each; up/down detection is off by default; existing horizontal preferences are preserved |
-| Delay before blur | How long you must stay turned away before it triggers, so a quick glance doesn't count | 0.6 s |
-| Dimming | Extra darkening on top of the blur | 0.15 |
+### Automatic forward adjustment
 
-Automatic forward adjustment is off by default and can be enabled after manual calibration. It requires 8 seconds of stability within half of each directional limit, measured from both the current forward pose and the manual anchor, then adjusts at up to 0.5° per second. It pauses while blurred or beyond the posture limit, and resets on tracking interruption. Total correction in each direction is bounded to 50% of that direction’s trigger angle from the manual anchor (for example, a 50° left limit permits up to 25° left correction). Larger seating changes need manual recalibration. Posture reminders retain the manual reference. Headphone motion alone cannot confirm screen gaze; a small sustained turn can still be learned, so automatic adjustment can be disabled.
-
-### Posture reminder
-
-| Setting | What it does | Default |
-|---|---|---|
-| Trigger angle | Reminds when head pitch rises above this value (head-up is positive, measured from your calibrated pose). Set it to 0 or below if you calibrated while already slouching a bit | +15° |
-| Hold before reminding | How long the bad posture must persist. Slouching happens slowly, so this is measured in seconds, not fractions | 5 s |
-
-The reminder is off by default because it only makes sense after calibrating. While it's showing, press `Esc` or click **Dismiss, pause 1 min** in the menu.
-
-### Language and appearance
-
-Both live at the bottom of the menu. Language defaults to Chinese or Japanese if your system uses one of them, English otherwise.
+Off by default. Calibrate manually first. When nothing is triggered and your head stays within half of each trigger angle for 8 seconds, HeadOrbit shifts "forward" by up to 0.5° per second. The total shift in each direction is capped at 50% of that direction's trigger angle from your manual calibration. Posture reminders always use the manual reference, so slouching never becomes the new normal. Recalibrate after moving your chair.
 
 ## Troubleshooting
 
 **"No head-tracking headphones"** while wearing AirPods
-- Check they're connected to the Mac, not your iPhone (Control Center → Sound).
+- Check they're connected to the Mac, not your iPhone (Control Center → Sound). Sound playing through the AirPods is not enough; if it still fails, click the AirPods in the Bluetooth menu to connect them to this Mac.
 - Take them out and put them back in. Motion data only streams while they're worn.
 - Make sure the model supports head tracking (see Requirements).
 
+**A key gesture shows the Accessibility prompt again after an update**
+- The release build is not signed with a fixed developer identity, so macOS treats each new version as a new app. In System Settings → Privacy & Security → Accessibility, remove HeadOrbit with **−** and add it again. Unticking and ticking is not enough.
+
+**My Bluetooth mouse lags while HeadOrbit is running**
+- Head tracking keeps a constant Bluetooth stream from the AirPods. Some third-party Bluetooth LE mice can't adjust to it and stutter; macOS logs them as "Incompatible LE HID". Apple mice and trackpads, wired mice, or mice with a 2.4 GHz receiver are not affected.
+
 **Motion & Fitness access denied**
 - System Settings → Privacy & Security → Motion & Fitness → enable HeadOrbit.
-- If you rebuild the app yourself, macOS may ask again. That's expected with a locally signed build.
 
 **The blur looks like a flat dark sheet instead of blur**
 - HeadOrbit uses a WindowServer blur that Apple doesn't document. If a future macOS removes it, the overlay falls back to plain dimming.
@@ -121,9 +131,9 @@ Both live at the bottom of the menu. Language defaults to Chinese or Japanese if
 ## Ideas for later
 
 - Look down at your phone → pause media
-- Quick head flick → next track or next desktop
 - Away from the screen for a while → lock
 - Turn your head toward another display → move focus there
+- Run a Shortcut from a gesture
 
 If you build any of these, a pull request is very welcome.
 
