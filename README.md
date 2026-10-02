@@ -12,7 +12,9 @@
 
 # HeadOrbit
 
-A small macOS menu bar app that reads head motion from your AirPods and turns it into actions on your Mac.
+**Control your Mac with your head. No camera needed.**
+
+HeadOrbit is a small macOS menu bar app. It reads the motion sensors already inside your AirPods and turns head movements into actions on your Mac.
 
 Turn away to talk to someone and the screen blurs. Tilt your head left and your voice input starts listening; straighten up and it stops. Tilt right and it presses Return. Your hands stay on the keyboard, or off it.
 
