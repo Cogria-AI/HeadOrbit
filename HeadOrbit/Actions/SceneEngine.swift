@@ -69,6 +69,9 @@ final class SceneEngine: ObservableObject {
     let feed = PoseFeed()
     let posture = PostureReminder()
 
+    /// 颈部活动期间暂停所有场景，免得绕环时触发按键或模糊
+    var isSuspended = false { didSet { if isSuspended { deactivateAll() } } }
+
     private var active: Set<Gesture> = [] { didSet { if active != feed.active { feed.active = active } } }
 
     private let tracker: HeadTracker
@@ -133,6 +136,7 @@ final class SceneEngine: ObservableObject {
     // MARK: -
 
     private func process(_ pose: HeadPose) {
+        guard !isSuspended else { return }
         updateCalibration(pose)
         let corrected = calibration.corrected(pose)
         feed.forward = corrected

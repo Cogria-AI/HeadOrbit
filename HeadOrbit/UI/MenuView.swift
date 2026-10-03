@@ -4,6 +4,7 @@ import SwiftUI
 struct MenuView: View {
     @EnvironmentObject private var tracker: HeadTracker
     @EnvironmentObject private var engine: SceneEngine
+    @EnvironmentObject private var exercise: ExerciseController
     @ObservedObject private var l10n = L10n.shared
     @Environment(\.openWindow) private var openWindow
 
@@ -14,6 +15,8 @@ struct MenuView: View {
             Divider()
             MenuPose(feed: engine.feed)
             calibrateRow
+            Divider()
+            exerciseRow
             Divider()
             footer
         }
@@ -40,7 +43,7 @@ struct MenuView: View {
         if !tracker.status.isTracking, tracker.authorization == .authorized {
             HStack(spacing: 6) {
                 if tracker.headphonesRoutedAway {
-                    InfoIcon("device.routedAwayHint")
+                    Text(l10n.t("device.routedAwayShort")).font(.caption).foregroundStyle(.secondary)
                 } else {
                     InfoIcon("device.hint")
                     Spacer()
@@ -64,6 +67,19 @@ struct MenuView: View {
                 .disabled(!tracker.status.isTracking)
                 .controlSize(.small)
             InfoIcon("pose.help")
+        }
+    }
+
+    private var exerciseRow: some View {
+        HStack(spacing: 6) {
+            Button(l10n.t("exercise.start")) {
+                // 先收起面板，否则它会挡在练习画面上面
+                NSApplication.shared.keyWindow?.close()
+                exercise.start()
+            }
+            .disabled(!tracker.status.isTracking || exercise.isRunning)
+            .controlSize(.small)
+            InfoIcon("exercise.help")
         }
     }
 

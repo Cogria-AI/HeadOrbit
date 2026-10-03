@@ -155,4 +155,21 @@ assert(trigger.update(2, at: 0.7) && trigger.isActive)
 assert(!trigger.update(-0.1, at: 1))
 assert(!trigger.update(-1, at: 2))
 assert(trigger.update(-1, at: 2.3) && !trigger.isActive)
-print("PASS: scenes, legacy migration, conflicts, gestures, runtime, calibration stability, bounds, pause, stream gaps, motion rejection and dwell recovery")
+// Neck exercise: follow the path in its own direction, overshoot is fine, reversing never counts.
+func circle(_ ex: NeckExercise, radius: Double, turns: Double, sign: Double) -> PathFollower {
+    var f = PathFollower(exercise: ex)
+    for i in 0...Int(turns * 150) {
+        let a = Double(i) / 150 * 2 * .pi
+        f.update(x: sign * -radius * sin(a), y: -radius * cos(a))
+    }
+    return f
+}
+assert(circle(.rollClockwise, radius: 40, turns: 3.05, sign: 1).completedReps == 3)
+assert(circle(.rollClockwise, radius: 60, turns: 3.05, sign: 1).completedReps == 3, "Bigger circles count")
+assert(circle(.rollClockwise, radius: 15, turns: 3.05, sign: 1).progress < 0.2, "Tiny circles do not")
+assert(circle(.rollClockwise, radius: 45, turns: 3.05, sign: -1).progress < 0.2, "Wrong direction does not")
+assert(circle(.rollCounterClockwise, radius: 45, turns: 3.05, sign: -1).completedReps == 3)
+var eight = PathFollower(exercise: .figureEight)
+for i in 0...600 { let p = NeckExercise.figureEight.point(Double(i % 200) / 200); eight.update(x: p.x * 1.2, y: p.y * 1.2) }
+assert(eight.completedReps == 3, "A 20% larger 8 counts")
+print("PASS: scenes, legacy migration, conflicts, gestures, runtime, calibration stability, bounds, pause, stream gaps, motion rejection, dwell recovery and neck exercise paths")

@@ -144,6 +144,7 @@ final class HeadTracker: NSObject, ObservableObject {
         isCalibrated = true
         pose = .zero
         log.notice("recenter")
+        MotionRecorder.shared?.mark("recenter")
         didRecenter.send()
     }
 
@@ -155,8 +156,10 @@ final class HeadTracker: NSObject, ObservableObject {
 
         let att = motion.attitude.copy() as! CMAttitude
         if let reference { att.multiply(byInverseOf: reference) }
-        let p = HeadPose(attitude: att, timestamp: motion.timestamp)
+        let p = HeadPose(attitude: att, current: motion.attitude.quaternion,
+                         reference: reference?.quaternion, timestamp: motion.timestamp)
         pose = p
+        MotionRecorder.shared?.record(motion, pose: p)
         samples.send(p)
 
         let side = SensorSide(motion.sensorLocation)

@@ -86,9 +86,9 @@ final class L10n: ObservableObject {
         "auth.unknown": ("Unknown", "未知", "不明"),
         "device.openSettings": ("Settings…", "去设置", "設定を開く…"),
         "status.routedAway": ("Headphones are on another device", "耳机已切到其他设备", "ヘッドフォンは別のデバイスに接続中"),
-        "device.routedAwayHint": ("Your AirPods are currently connected to another device (usually an iPhone or iPad that auto-switched). HeadOrbit does nothing about that. Tracking resumes on its own once they come back to this Mac.", "AirPods 现在连在别的设备上（通常是 iPhone / iPad 自动切换过去了）。HeadOrbit 不会去干预。等它回到这台 Mac，追踪会自动恢复。", "AirPods は現在別のデバイス（通常は自動で切り替わった iPhone / iPad）に接続されています。HeadOrbit はこれに干渉しません。この Mac に戻ると、トラッキングは自動的に再開します。"),
         "device.reconnect": ("Reconnect", "重新连接", "再接続"),
         "device.reconnecting": ("Connecting…", "连接中…", "接続中…"),
+        "device.routedAwayShort": ("Tracking resumes when they're back on this Mac", "切回这台 Mac 后会自动恢复", "この Mac に戻ると自動で再開します"),
         "device.hint": ("Wear AirPods / Beats that support head tracking, and make sure they are connected to this Mac, not your iPhone.", "戴上支持头部追踪的 AirPods / Beats，并确认它连接的是这台 Mac，不是 iPhone。", "ヘッドトラッキング対応の AirPods / Beats を装着し、iPhone ではなくこの Mac に接続されていることを確認してください。"),
 
         // pose section
@@ -106,6 +106,19 @@ final class L10n: ObservableObject {
 
 
         // menu
+        "exercise.start": ("Neck exercise", "颈部活动", "首のストレッチ"),
+        "exercise.help": ("The screen blurs and shows a path to follow with your head: neck rolls both ways, then a figure 8, 3 times each. Face the screen when each one starts. Press Esc to stop at any time.", "屏幕变模糊，显示一条轨迹，用头跟着走：顺时针、逆时针绕环，再画 8，各 3 次。每段开始前请面朝屏幕坐正。随时按 Esc 退出。", "画面がぼけて軌跡が表示されます。頭でなぞってください：首回しを右回り・左回り、最後に 8 の字を各 3 回。各ステップの開始時は画面に正対してください。Esc キーでいつでも終了できます。"),
+        "exercise.rollClockwise": ("Neck roll · clockwise", "颈部绕环 · 顺时针", "首回し · 右回り"),
+        "exercise.rollCounterClockwise": ("Neck roll · counterclockwise", "颈部绕环 · 逆时针", "首回し · 左回り"),
+        "exercise.figureEight": ("Figure 8", "画 8 字", "8 の字"),
+        "exercise.crownHint": ("Face the screen. Drop your chin, then roll ear to shoulder, slowly around.\nThe dot follows the top of your head.", "面朝屏幕，先低头，再让耳朵贴向肩膀，慢慢绕一圈\n光点跟着你的头顶走", "画面に向かったまま、あごを引き、耳を肩に近づけるようにゆっくり回します\n点は頭のてっぺんの向きを示します"),
+        "exercise.noseHint": ("Trace the 8 with the tip of your nose.", "用鼻尖在屏幕上描这个 8", "鼻先で画面の 8 をなぞってください"),
+        "exercise.getReady": ("Face the screen · starting in %d", "面朝屏幕坐正 · %d 秒后开始", "画面に正対してください · %d 秒後に開始"),
+        "exercise.reachStartRoll": ("Drop your chin to touch the white dot to begin", "先低头，碰到白点就开始", "まずあごを引いて、白い点に触れたらスタート"),
+        "exercise.reachStart": ("Move the orange dot onto the white dot to begin", "把橙点移到白点上就开始", "オレンジの点を白い点に重ねるとスタート"),
+        "exercise.waiting": ("Waiting for AirPods…", "等待耳机数据…", "AirPods を待っています…"),
+        "exercise.finished": ("Done. Nice work!", "完成，辛苦了！", "完了。お疲れさまでした！"),
+        "exercise.escHint": ("Press Esc to stop", "按 Esc 退出", "Esc キーで終了"),
         "menu.settings": ("Settings…", "设置…", "設定…"),
         "menu.about": ("About", "关于", "情報"),
 

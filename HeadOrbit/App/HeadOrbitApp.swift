@@ -10,6 +10,7 @@ struct HeadOrbitApp: App {
             MenuView()
                 .environmentObject(runtime.tracker)
                 .environmentObject(runtime.engine)
+                .environmentObject(runtime.exercise)
         } label: {
             TrackingStatusIcon(tracker: runtime.tracker)
         }
@@ -29,9 +30,11 @@ private final class HeadOrbitRuntime: ObservableObject {
     let tracker = HeadTracker()
     let store = SceneStore()
     let engine: SceneEngine
+    let exercise: ExerciseController
 
     init() {
         engine = SceneEngine(tracker: tracker, store: store)
+        exercise = ExerciseController(tracker: tracker, engine: engine)
         tracker.start()
         L10n.shared.applyAppearance()
     }
