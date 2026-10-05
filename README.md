@@ -21,6 +21,11 @@ Turn away to talk to someone and the screen blurs. Tilt your head left and your 
 > **Status: an experiment, made for fun.**
 > Inspired by [this post by @bryllim_](https://x.com/bryllim_/status/2099049704822907277). This is a weekend-project-grade tool, not a product. Expect rough edges.
 
+## What's new in 2.1
+
+- **Neck exercise.** Click **Neck exercise** in the menu bar panel. The screen blurs and shows a path to follow with your head: a clockwise neck roll, a counterclockwise one, then a figure 8, 3 times each. The dot is your head, and it waits if you fall behind. Press `Esc` to stop at any time.
+- **Automatic updates.** HeadOrbit checks GitHub for a new version once at launch, downloads it, and asks before restarting. You can also check by hand in Settings → About. Coming from 2.0, you still need to download this one manually.
+
 ## What's new in 2.0
 
 - **Gestures and actions are separate.** HeadOrbit reads three head movements: turn, nod and tilt. Each has two directions, and each direction can do one thing: blur the screen, show a posture reminder, press a key, hold a key, or nothing.
@@ -47,7 +52,7 @@ You can change any angle, delay or key, duplicate a built-in scene, or start an 
   <img src="docs/settings.png" alt="HeadOrbit settings window" width="640">
 </p>
 
-Nothing leaves your Mac. No network, no screen recording, no accounts.
+Nothing leaves your Mac. No screen recording, no accounts. The only network request is the update check against GitHub Releases, and nothing is uploaded.
 
 ## Requirements
 
@@ -105,7 +110,7 @@ The panel shows turn, nod and tilt live. Right turn, head up and right tilt are 
 - **Scenes.** Each scene page has a switch and three sections: turn, nod, tilt. Each section has a live gauge with orange marks at the trigger angles, then one row per direction: pick an action, then set its angle, how long to hold before it fires, and the key or dimming.
 - **Calibration.** Recalibrate forward, and turn on automatic forward adjustment.
 - **General.** Language (English, 中文, 日本語), appearance, headphone status and both permissions.
-- **About.** Version, [headorbit.com](https://headorbit.com) and a link to the author.
+- **About.** Version, update check, [headorbit.com](https://headorbit.com) and a link to the author.
 
 ### Automatic forward adjustment
 
