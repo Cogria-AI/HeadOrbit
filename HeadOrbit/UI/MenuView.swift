@@ -6,6 +6,7 @@ struct MenuView: View {
     @EnvironmentObject private var engine: SceneEngine
     @EnvironmentObject private var exercise: ExerciseController
     @ObservedObject private var l10n = L10n.shared
+    @ObservedObject private var updater = Updater.shared
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -18,6 +19,11 @@ struct MenuView: View {
             Divider()
             exerciseRow
             Divider()
+            if case .ready(let v) = updater.state {
+                Button(l10n.t("update.restartTo", v)) { updater.installAndRelaunch() }
+                    .controlSize(.small)
+                Divider()
+            }
             footer
         }
         .padding(14)

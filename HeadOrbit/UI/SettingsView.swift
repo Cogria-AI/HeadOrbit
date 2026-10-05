@@ -176,6 +176,7 @@ private struct AboutPage: View {
                 .frame(width: 96, height: 96)
             Text("HeadOrbit").font(.largeTitle.weight(.semibold))
             Text(l10n.t("about.version", StatusText.version)).foregroundStyle(.secondary)
+            UpdateRow()
             Text(l10n.t("about.tagline")).multilineTextAlignment(.center)
             VStack(spacing: 6) {
                 Link(l10n.t("about.website"), destination: URL(string: "https://headorbit.com")!)
@@ -188,5 +189,35 @@ private struct AboutPage: View {
         .padding(40)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .navigationTitle(l10n.t("settings.about"))
+    }
+}
+
+private struct UpdateRow: View {
+    @ObservedObject private var updater = Updater.shared
+    @ObservedObject private var l10n = L10n.shared
+
+    var body: some View {
+        HStack(spacing: 8) {
+            switch updater.state {
+            case .checking:
+                ProgressView().controlSize(.small)
+                Text(l10n.t("update.checking")).foregroundStyle(.secondary)
+            case .downloading(let v):
+                ProgressView().controlSize(.small)
+                Text(l10n.t("update.downloading", v)).foregroundStyle(.secondary)
+            case .ready(let v):
+                Button(l10n.t("update.restartTo", v)) { updater.installAndRelaunch() }
+                    .buttonStyle(.borderedProminent)
+            case .idle, .upToDate, .failed:
+                Button(l10n.t("update.check")) { updater.check(interactive: true) }
+                if updater.state == .upToDate {
+                    Text(l10n.t("update.upToDate")).foregroundStyle(.secondary)
+                } else if case .failed(let msg) = updater.state {
+                    Text(l10n.t("update.failed")).foregroundStyle(.red).help(msg)
+                }
+            }
+        }
+        .font(.callout)
+        .frame(height: 24)
     }
 }

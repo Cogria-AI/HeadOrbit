@@ -203,6 +203,18 @@ final class L10n: ObservableObject {
         "about.author": ("Contact the author on X: @rfboen", "联系作者（X）：@rfboen", "作者に連絡（X）：@rfboen"),
         "about.github": ("Source code and feedback on GitHub", "GitHub：源码与反馈", "GitHub：ソースコードとフィードバック"),
 
+        // update
+        "update.check": ("Check for Updates", "检查更新", "アップデートを確認"),
+        "update.checking": ("Checking…", "正在检查…", "確認中…"),
+        "update.upToDate": ("You're up to date.", "已是最新版本", "最新バージョンです"),
+        "update.downloading": ("Downloading %@…", "正在下载 %@…", "%@ をダウンロード中…"),
+        "update.restartTo": ("Restart to update to %@", "重启以更新到 %@", "再起動して %@ にアップデート"),
+        "update.failed": ("Couldn't check for updates", "检查更新失败", "アップデートを確認できませんでした"),
+        "update.readyTitle": ("HeadOrbit %@ is ready", "HeadOrbit %@ 已下载好", "HeadOrbit %@ の準備ができました"),
+        "update.readyBody": ("HeadOrbit will quit, install the new version and reopen.", "HeadOrbit 会退出，装好新版本后自动重新打开。", "HeadOrbit を終了し、新しいバージョンをインストールして再び開きます。"),
+        "update.restart": ("Restart Now", "立即重启", "今すぐ再起動"),
+        "update.later": ("Later", "稍后", "あとで"),
+
         // common
         "common.preview": ("Preview 2 s", "预览 2 秒", "2 秒プレビュー"),
         "common.quit": ("Quit", "退出", "終了"),

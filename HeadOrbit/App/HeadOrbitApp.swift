@@ -37,6 +37,11 @@ private final class HeadOrbitRuntime: ObservableObject {
         exercise = ExerciseController(tracker: tracker, engine: engine)
         tracker.start()
         L10n.shared.applyAppearance()
+        // 启动后稍等再查更新，别和耳机连接抢启动那几秒
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(5))
+            Updater.shared.check(interactive: false)
+        }
     }
 }
 
