@@ -74,7 +74,7 @@ struct KeyCombo: Codable, Equatable {
     static let presets: [KeyCombo] = [.fn, .returnKey, .space, .escape, .reload, .pageDown]
 
     /// 修饰键本身（Fn、⌘、⇧…）要用 flagsChanged 事件发，不是 keyDown
-    var modifierFlag: CGEventFlags? {
+    static func modifierFlag(for keyCode: UInt16) -> CGEventFlags? {
         switch keyCode {
         case 63: return .maskSecondaryFn
         case 54, 55: return .maskCommand
@@ -90,7 +90,8 @@ struct KeyCombo: Codable, Equatable {
 enum KeySender {
     static var isTrusted: Bool { AXIsProcessTrusted() }
     private static let queue = DispatchQueue(label: "com.cogria.HeadOrbit.keySender")
-    private static let pressInterval: TimeInterval = 0.1
+    /// 键与键之间留一点间隔，保证目标 app 先看到修饰键再看到主键
+    private static let pressInterval: TimeInterval = 0.01
 
     /// 弹系统授权框（已授权时不弹）
     static func requestTrust() {
@@ -101,7 +102,7 @@ enum KeySender {
     static func tap(_ k: KeyCombo) {
         queue.async {
             pressSequence(k)
-            Thread.sleep(forTimeInterval: 0.05)
+            Thread.sleep(forTimeInterval: pressInterval)
             releaseSequence(k)
         }
     }
@@ -110,8 +111,9 @@ enum KeySender {
         queue.async { pressSequence(k) }
     }
 
+    /// 同步松开：退出时 willTerminate 里调用，必须在进程结束前把键松掉
     static func up(_ k: KeyCombo) {
-        queue.async { releaseSequence(k) }
+        queue.sync { releaseSequence(k) }
     }
 
     private static let source = CGEventSource(stateID: .hidSystemState)
@@ -130,23 +132,12 @@ enum KeySender {
         return result
     }
 
-    private static func modifierFlag(for keyCode: UInt16) -> CGEventFlags? {
-        switch keyCode {
-        case 63: return .maskSecondaryFn
-        case 54, 55: return .maskCommand
-        case 56, 60: return .maskShift
-        case 58, 61: return .maskAlternate
-        case 59, 62: return .maskControl
-        default: return nil
-        }
-    }
-
     private static func pressSequence(_ k: KeyCombo) {
         let steps = sequence(k)
         var flags = CGEventFlags()
 
         for (index, keyCode) in steps.enumerated() {
-            if let flag = modifierFlag(for: keyCode) {
+            if let flag = KeyCombo.modifierFlag(for: keyCode) {
                 flags.insert(flag)
                 post(keyCode, down: true, flags: flags, modifier: true)
             } else {
@@ -163,11 +154,11 @@ enum KeySender {
         let steps = sequence(k)
         var flags = CGEventFlags()
         for keyCode in steps {
-            if let flag = modifierFlag(for: keyCode) { flags.insert(flag) }
+            if let flag = KeyCombo.modifierFlag(for: keyCode) { flags.insert(flag) }
         }
 
         for keyCode in steps.reversed() {
-            if let flag = modifierFlag(for: keyCode) {
+            if let flag = KeyCombo.modifierFlag(for: keyCode) {
                 flags.remove(flag)
                 post(keyCode, down: false, flags: flags, modifier: true)
             } else {

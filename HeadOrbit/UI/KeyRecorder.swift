@@ -95,14 +95,16 @@ struct KeyRecorder: View {
         let code = e.keyCode
         let f = e.modifierFlags
         var mods = CGEventFlags()
-        if f.contains(.control) { mods.insert(.maskControl) }
-        if f.contains(.option) { mods.insert(.maskAlternate) }
-        if f.contains(.shift) { mods.insert(.maskShift) }
-        if f.contains(.command) { mods.insert(.maskCommand) }
-        if f.contains(.function) { mods.insert(.maskSecondaryFn) }
+        var prefix = ""
+        // 显示按 macOS 惯例 ⌃⌥⇧⌘；实际按下顺序记在 pressOrder 里
+        // 方向键、F 键的 keyDown 自带 .function，只有真按了 Fn 才算
+        if pressOrder.contains(63) { mods.insert(.maskSecondaryFn); prefix += "Fn+" }
+        if f.contains(.control) { mods.insert(.maskControl); prefix += "⌃" }
+        if f.contains(.option) { mods.insert(.maskAlternate); prefix += "⌥" }
+        if f.contains(.shift) { mods.insert(.maskShift); prefix += "⇧" }
+        if f.contains(.command) { mods.insert(.maskCommand); prefix += "⌘" }
         let name = keyNames[code] ?? (e.charactersIgnoringModifiers ?? "?").uppercased()
         let ordered = pressOrder + [code]
-        let prefix = pressOrder.map { modifierSymbols[$0] ?? "" }.joined()
         return KeyCombo(
             keyCode: code,
             modifiers: mods.rawValue,
@@ -114,11 +116,6 @@ struct KeyRecorder: View {
     private static let modifierNames: [UInt16: String] = [
         63: "Fn", 55: "⌘", 54: "Right ⌘", 56: "⇧", 60: "Right ⇧",
         58: "⌥", 61: "Right ⌥", 59: "⌃", 62: "Right ⌃",
-    ]
-
-    private static let modifierSymbols: [UInt16: String] = [
-        63: "Fn+", 54: "⌘", 55: "⌘", 56: "⇧", 60: "⇧",
-        58: "⌥", 61: "⌥", 59: "⌃", 62: "⌃",
     ]
 
     private static let keyNames: [UInt16: String] = [
