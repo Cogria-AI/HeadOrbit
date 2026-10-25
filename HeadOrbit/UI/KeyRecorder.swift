@@ -1,11 +1,15 @@
 import AppKit
 import SwiftUI
 
-/// 点一下进入录制，按下的下一个键（可带 ⌘⌥⌃⇧）就是它；单独按修饰键（含 Fn）也能录。再点一下取消
+/// 点一下进入录制：先按修饰键时继续等待普通键，从而支持 ⌘⌥⌃⇧Fn + Key。
+/// 如果只按一个修饰键并松开，仍然把它录成单独按键。再点一下取消。
 struct KeyRecorder: View {
     @Binding var combo: KeyCombo
     @ObservedObject private var l10n = L10n.shared
     @State private var monitor: Any?
+    @State private var pressedModifierCodes: Set<UInt16> = []
+    @State private var pressOrder: [UInt16] = []
+    @State private var modifierOnlyCandidate: KeyCombo?
 
     var body: some View {
         HStack(spacing: 6) {
@@ -24,46 +28,89 @@ struct KeyRecorder: View {
     }
 
     private func start() {
+        pressedModifierCodes.removeAll()
+        pressOrder.removeAll()
+        modifierOnlyCandidate = nil
         monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { e in
-            if let k = Self.combo(from: e) {
-                combo = k
-                stop()
+            if e.type == .flagsChanged {
+                guard let modifier = Self.modifierCombo(from: e) else { return e }
+                if Self.isModifierPressed(e) {
+                    if pressedModifierCodes.insert(e.keyCode).inserted {
+                        pressOrder.append(e.keyCode)
+                    }
+                    modifierOnlyCandidate = pressedModifierCodes.count == 1 ? modifier : nil
+                    return nil
+                }
+
+                pressedModifierCodes.remove(e.keyCode)
+                if pressedModifierCodes.isEmpty, modifierOnlyCandidate?.keyCode == e.keyCode {
+                    combo = modifier
+                    pressOrder.removeAll()
+                    modifierOnlyCandidate = nil
+                    stop()
+                } else {
+                    pressOrder.removeAll { $0 == e.keyCode }
+                }
                 return nil
             }
-            return e.type == .keyDown ? nil : e
+
+            if let k = Self.combo(fromKeyDown: e, pressOrder: pressOrder) {
+                combo = k
+                modifierOnlyCandidate = nil
+                pressedModifierCodes.removeAll()
+                pressOrder.removeAll()
+                stop()
+            }
+            return nil
         }
     }
 
     private func stop() {
         if let monitor { NSEvent.removeMonitor(monitor) }
         monitor = nil
+        pressedModifierCodes.removeAll()
+        pressOrder.removeAll()
+        modifierOnlyCandidate = nil
     }
 
-    private static func combo(from e: NSEvent) -> KeyCombo? {
+    private static func modifierCombo(from e: NSEvent) -> KeyCombo? {
         let code = e.keyCode
-        if e.type == .flagsChanged {
-            // 只在按下时录（松开时对应的修饰位已经清掉）
-            let pressed: Bool
-            switch code {
-            case 63: pressed = e.modifierFlags.contains(.function)
-            case 54, 55: pressed = e.modifierFlags.contains(.command)
-            case 56, 60: pressed = e.modifierFlags.contains(.shift)
-            case 58, 61: pressed = e.modifierFlags.contains(.option)
-            case 59, 62: pressed = e.modifierFlags.contains(.control)
-            default: return nil
-            }
-            guard pressed else { return nil }
-            return KeyCombo(keyCode: code, modifiers: 0, label: modifierNames[code] ?? "?")
+        guard modifierNames[code] != nil else { return nil }
+        return KeyCombo(keyCode: code, modifiers: 0, label: modifierNames[code] ?? "?")
+    }
+
+    private static func isModifierPressed(_ e: NSEvent) -> Bool {
+        switch e.keyCode {
+        case 63: return e.modifierFlags.contains(.function)
+        case 54, 55: return e.modifierFlags.contains(.command)
+        case 56, 60: return e.modifierFlags.contains(.shift)
+        case 58, 61: return e.modifierFlags.contains(.option)
+        case 59, 62: return e.modifierFlags.contains(.control)
+        default: return false
         }
+    }
+
+    private static func combo(fromKeyDown e: NSEvent, pressOrder: [UInt16]) -> KeyCombo? {
+        guard e.type == .keyDown else { return nil }
+        let code = e.keyCode
         let f = e.modifierFlags
         var mods = CGEventFlags()
         var prefix = ""
+        // 显示按 macOS 惯例 ⌃⌥⇧⌘；实际按下顺序记在 pressOrder 里
+        // 方向键、F 键的 keyDown 自带 .function，只有真按了 Fn 才算
+        if pressOrder.contains(63) { mods.insert(.maskSecondaryFn); prefix += "Fn+" }
         if f.contains(.control) { mods.insert(.maskControl); prefix += "⌃" }
         if f.contains(.option) { mods.insert(.maskAlternate); prefix += "⌥" }
         if f.contains(.shift) { mods.insert(.maskShift); prefix += "⇧" }
         if f.contains(.command) { mods.insert(.maskCommand); prefix += "⌘" }
         let name = keyNames[code] ?? (e.charactersIgnoringModifiers ?? "?").uppercased()
-        return KeyCombo(keyCode: code, modifiers: mods.rawValue, label: prefix + name)
+        let ordered = pressOrder + [code]
+        return KeyCombo(
+            keyCode: code,
+            modifiers: mods.rawValue,
+            label: prefix + name,
+            pressOrder: ordered
+        )
     }
 
     private static let modifierNames: [UInt16: String] = [
