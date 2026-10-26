@@ -62,13 +62,19 @@ final class HeadTracker: NSObject, ObservableObject {
 
     var isDeviceMotionAvailable: Bool { manager.isDeviceMotionAvailable }
 
+    /// 连接状态那组 API 在 macOS 14 上不存在（头文件没标版本，编译器不报），直接调会崩。
+    /// 没有时只靠 DidConnect / DidDisconnect 回调判断连接
+    private var hasConnectionStatusAPI: Bool {
+        manager.responds(to: #selector(CMHeadphoneMotionManager.startConnectionStatusUpdates))
+    }
+
 
     func start() {
-        log.notice("start: available=\(self.manager.isDeviceMotionAvailable) active=\(self.manager.isDeviceMotionActive) auth=\(CMHeadphoneMotionManager.authorizationStatus().rawValue) connectionStatusActive=\(self.manager.isConnectionStatusActive)")
+        log.notice("start: available=\(self.manager.isDeviceMotionAvailable) active=\(self.manager.isDeviceMotionActive) auth=\(CMHeadphoneMotionManager.authorizationStatus().rawValue) connectionStatusAPI=\(self.hasConnectionStatusAPI)")
         guard manager.isDeviceMotionAvailable else { status = .unsupported; return }
         guard !manager.isDeviceMotionActive else { return }
         lastError = nil
-        manager.startConnectionStatusUpdates()
+        if hasConnectionStatusAPI { manager.startConnectionStatusUpdates() }
         manager.startDeviceMotionUpdates(to: .main) { [weak self] motion, error in
             guard let self else { return }
             if let error {
@@ -117,7 +123,7 @@ final class HeadTracker: NSObject, ObservableObject {
     private func rebuildSession() {
         connectCheckTimer?.invalidate(); connectCheckTimer = nil
         manager.stopDeviceMotionUpdates()
-        manager.stopConnectionStatusUpdates()
+        if hasConnectionStatusAPI { manager.stopConnectionStatusUpdates() }
         manager.delegate = nil
         manager = CMHeadphoneMotionManager()
         manager.delegate = self
@@ -129,7 +135,7 @@ final class HeadTracker: NSObject, ObservableObject {
     func stop() {
         log.notice("stop")
         manager.stopDeviceMotionUpdates()
-        manager.stopConnectionStatusUpdates()
+        if hasConnectionStatusAPI { manager.stopConnectionStatusUpdates() }
         staleTimer?.invalidate(); staleTimer = nil
         permissionTimer?.invalidate(); permissionTimer = nil
         connectCheckTimer?.invalidate(); connectCheckTimer = nil
