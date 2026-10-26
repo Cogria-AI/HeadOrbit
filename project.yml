@@ -27,8 +27,8 @@ targets:
       properties:
         CFBundleName: HeadOrbit
         CFBundleDisplayName: HeadOrbit
-        CFBundleShortVersionString: "2.1.1"
-        CFBundleVersion: "10"
+        CFBundleShortVersionString: "2.1.2"
+        CFBundleVersion: "11"
         LSMinimumSystemVersion: "14.0"
         CFBundleIconFile: AppIcon
         LSUIElement: true
