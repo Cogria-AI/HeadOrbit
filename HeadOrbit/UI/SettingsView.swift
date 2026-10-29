@@ -93,7 +93,8 @@ private struct CalibrationPage: View {
                     }
                 }
             }
-            if !store.dualScreen {
+            // 屏幕 B 校准好之前引擎仍走单屏路径，自动微调照常生效，开关也要能看到
+            if !store.dualScreen || store.screenBOffset == nil {
                 Section {
                     Toggle(l10n.t("pose.auto"), isOn: $store.autoCalibration)
                     Text(l10n.t("pose.autoHelp")).font(.caption).foregroundStyle(.secondary)

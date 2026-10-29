@@ -114,10 +114,11 @@ final class SceneEngine: ObservableObject {
             .sink { [weak self] _ in self?.resetAll() }
             .store(in: &bag)
 
+        // 重校屏幕 B 时保留已吸收的漂移：新偏角就是按当前修正量算的
         store.$screenBOffset
             .removeDuplicates()
             .dropFirst()
-            .sink { [weak self] _ in self?.resetAll() }
+            .sink { [weak self] _ in self?.resetAll(keepingDrift: true) }
             .store(in: &bag)
 
         tracker.samples
@@ -172,7 +173,8 @@ final class SceneEngine: ObservableObject {
     /// 双屏模式：把当前姿态记为屏幕 B（相对屏幕 A 的偏航）。先校准过屏幕 A 才有效
     func calibrateScreenB() {
         guard tracker.isCalibrated, tracker.status.isTracking else { return }
-        store.screenBOffset = tracker.pose.yaw
+        // 减掉快照已经吸收的漂移，否则下次回到屏幕 A 重锚后，屏幕 B 会多偏一份漂移
+        store.screenBOffset = tracker.pose.yaw - dualAnchor.correction
     }
 
     /// 清掉屏幕 B 基准
@@ -234,11 +236,11 @@ final class SceneEngine: ObservableObject {
     }
 
     /// 追踪中断或重新校准：清掉所有状态，回到初始
-    private func resetAll() {
+    private func resetAll(keepingDrift: Bool = false) {
         deactivateAll()
         runtime.resetAll()
         calibration = ForwardCalibration()
-        dualAnchor.reset()
+        if !keepingDrift { dualAnchor.reset() }
         feed.forward = .zero
         feed.raw = .zero
         posture.reset()

@@ -155,6 +155,23 @@ assert(trigger.update(2, at: 0.7) && trigger.isActive)
 assert(!trigger.update(-0.1, at: 1))
 assert(!trigger.update(-1, at: 2))
 assert(trigger.update(-1, at: 2.3) && !trigger.isActive)
+// Dual screen: yaw reads as distance to the nearer screen; holding still re-anchors drift.
+var dual = DualAnchor()
+assert(dual.remap(pose(-38, at: 0), offsetB: -40, allowSnap: false).yaw == 2, "Near screen B reads as near forward")
+assert(dual.remap(pose(30, at: 0.02), offsetB: -40, allowSnap: false).yaw == 30)
+dual = DualAnchor()
+for i in 0...100 { _ = dual.remap(pose(6, at: Double(i) / 50), offsetB: -40, allowSnap: true) }
+assert(dual.correction == 6, "Holding still near a screen absorbs drift")
+assert(abs(dual.remap(pose(-34, at: 2.04), offsetB: -40, allowSnap: false).yaw) < 0.01, "Shared correction keeps screen B aligned")
+dual = DualAnchor()
+for i in 0...100 { _ = dual.remap(pose(6, at: Double(i) / 50), offsetB: -40, allowSnap: false) }
+assert(dual.correction == 0, "No snapping while a gesture is active")
+// A slow turn must not drag the anchor along forever.
+dual = DualAnchor()
+var seen = 0.0
+for i in 0...3000 { seen = dual.remap(pose(1.5 * Double(i) / 50, at: Double(i) / 50), offsetB: -40, allowSnap: true).yaw }
+assert(dual.correction == DualAnchor.maxCorrection && abs(seen - (90 - DualAnchor.maxCorrection)) < 0.1)
+
 // Neck exercise: follow the path in its own direction, overshoot is fine, reversing never counts.
 func circle(_ ex: NeckExercise, radius: Double, turns: Double, sign: Double) -> PathFollower {
     var f = PathFollower(exercise: ex)
@@ -172,4 +189,4 @@ assert(circle(.rollCounterClockwise, radius: 45, turns: 3.05, sign: -1).complete
 var eight = PathFollower(exercise: .figureEight)
 for i in 0...600 { let p = NeckExercise.figureEight.point(Double(i % 200) / 200); eight.update(x: p.x * 1.2, y: p.y * 1.2) }
 assert(eight.completedReps == 3, "A 20% larger 8 counts")
-print("PASS: scenes, legacy migration, conflicts, gestures, runtime, calibration stability, bounds, pause, stream gaps, motion rejection, dwell recovery and neck exercise paths")
+print("PASS: scenes, legacy migration, conflicts, gestures, runtime, calibration stability, dual screen, bounds, pause, stream gaps, motion rejection, dwell recovery and neck exercise paths")

@@ -19,6 +19,9 @@ struct DualAnchor {
     static let jitter = 2.0
     /// 相邻帧最大间隔（秒），超过重新计时
     static let maxGap = 0.5
+    /// 累计修正上限（度）。没有上限的话，慢慢转头（每秒不到 2°）会被一路快照跟走，永远不触发；
+    /// 漂移超过这个量就停止跟随，交给用户手动重新校准
+    static let maxCorrection = 15.0
 
     /// offsetB：屏幕 B 相对屏幕 A 的偏航（度，右转为正）。
     /// 返回给引擎的姿态：yaw 已重映射为「离最近屏幕的偏航」，pitch/roll 原样。
@@ -49,8 +52,9 @@ struct DualAnchor {
         out.yaw = d
         // 快照重锚：确认稳稳待在某块屏前，把当前残差（漂移）一次性清零
         if stable, abs(d) < Self.snapCone {
-            correction += d
-            out.yaw = 0
+            let next = max(-Self.maxCorrection, min(Self.maxCorrection, correction + d))
+            out.yaw = d - (next - correction)
+            correction = next
         }
         return out
     }
