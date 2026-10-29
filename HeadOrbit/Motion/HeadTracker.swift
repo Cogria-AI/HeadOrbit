@@ -129,6 +129,12 @@ final class HeadTracker: NSObject, ObservableObject {
         manager.delegate = self
         lastSampleAt = nil
         status = .waitingForHeadphones
+        // 新会话的姿态参考系是重新建立的，旧基准四元数在新参考系里没有意义。
+        // 之前这里不清 reference，断流恢复后会减出一个几十度的任意偏角（yaw 为主）
+        reference = nil
+        isCalibrated = false
+        pose = .zero
+        log.notice("rebuildSession: calibration invalidated (attitude frame changed)")
         start()
     }
 
