@@ -32,7 +32,14 @@ struct SceneRuntime {
     }
 
     /// 坐姿提醒看手动校准的姿态（raw），其余看自动微调后的姿态（corrected）。skip 里的动作这一帧不处理
-    mutating func process(corrected: HeadPose, raw: HeadPose, skip: Set<Gesture> = []) -> [(Gesture, Bool)] {
+    mutating func process(corrected: HeadPose, raw: HeadPose, isCalibrated: Bool, skip: Set<Gesture> = []) -> [(Gesture, Bool)] {
+        // 未校准的角度只用于预览，不能触发屏幕或按键动作，也不能累计保持时间。
+        // 校准失效时仍要交付解除事件，让调用方松开已经按住的键。
+        guard isCalibrated else {
+            let releases = Gesture.allCases.filter { slots[$0]?.trigger.isActive == true }.map { ($0, false) }
+            resetAll()
+            return releases
+        }
         var flips: [(Gesture, Bool)] = []
         for g in Gesture.allCases {
             guard var slot = slots[g], !skip.contains(g) else { continue }
@@ -165,7 +172,7 @@ final class SceneEngine: ObservableObject {
         feed.raw = pose
         posture.update(pitch: pose.pitch)
         let skip = posture.isSnoozed ? Set(Gesture.allCases.filter { runtime.binding($0)?.behavior == .posture }) : []
-        for (g, on) in runtime.process(corrected: corrected, raw: pose, skip: skip) {
+        for (g, on) in runtime.process(corrected: corrected, raw: pose, isCalibrated: tracker.isCalibrated, skip: skip) {
             apply(g, on)
         }
     }

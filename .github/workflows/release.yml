@@ -13,6 +13,12 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Test motion and scene logic
+        run: bash Tests/run-motion.sh
+
+      - name: Test build failure handling
+        run: bash Tests/run-build-scripts.sh
+
       - name: Install xcodegen
         run: brew install xcodegen
 

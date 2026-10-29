@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Test motion and scene logic
+        run: bash Tests/run-motion.sh
+
+      - name: Test build failure handling
+        run: bash Tests/run-build-scripts.sh
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Build app
+        run: ./build.sh
