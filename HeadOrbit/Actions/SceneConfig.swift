@@ -40,6 +40,15 @@ struct SceneConfig: Codable, Equatable, Identifiable {
 final class SceneStore: ObservableObject {
     @Published private(set) var scenes: [SceneConfig] { didSet { save() } }
     @Published var autoCalibration: Bool { didSet { defaults.set(autoCalibration, forKey: "blur.autoCalibration") } }
+    /// 双屏模式：两个屏幕各有一个「正前方」，头离开两块屏的覆盖区才触发
+    @Published var dualScreen: Bool { didSet { defaults.set(dualScreen, forKey: "calibration.dualScreen") } }
+    /// 屏幕 B 相对屏幕 A 的偏航（度）。相对几何，跨启动、跨会话重建都有效
+    @Published var screenBOffset: Double? {
+        didSet {
+            if let screenBOffset { defaults.set(screenBOffset, forKey: "calibration.screenBOffset") }
+            else { defaults.removeObject(forKey: "calibration.screenBOffset") }
+        }
+    }
 
     private let defaults: UserDefaults
     private static let key = "scenes.v1"
@@ -47,6 +56,8 @@ final class SceneStore: ObservableObject {
     init(defaults d: UserDefaults = .standard) {
         defaults = d
         autoCalibration = d.object(forKey: "blur.autoCalibration") as? Bool ?? false
+        dualScreen = d.object(forKey: "calibration.dualScreen") as? Bool ?? false
+        screenBOffset = d.object(forKey: "calibration.screenBOffset") as? Double
         var loaded = (d.data(forKey: Self.key)).flatMap { try? JSONDecoder().decode([SceneConfig].self, from: $0) }
             ?? Self.migrateLegacy(d)
         // 以后新增的预置场景，老用户也能看到（默认关）

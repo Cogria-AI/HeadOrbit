@@ -78,6 +78,7 @@ final class SceneEngine: ObservableObject {
     private let store: SceneStore
     private var runtime = SceneRuntime(scenes: [])
     private var calibration = ForwardCalibration()
+    private var dualAnchor = DualAnchor()
     private var heldKeys: [Gesture: KeyCombo] = [:]
     private var lastTrustPrompt: Date?
     private let overlay = BlurOverlayController.shared
@@ -104,6 +105,20 @@ final class SceneEngine: ObservableObject {
             .removeDuplicates()
             .dropFirst()
             .sink { [weak self] _ in self?.resetAll() }
+            .store(in: &bag)
+
+        // 双屏设置变化：切换路径或重校屏幕 B 都要清状态重来
+        store.$dualScreen
+            .removeDuplicates()
+            .dropFirst()
+            .sink { [weak self] _ in self?.resetAll() }
+            .store(in: &bag)
+
+        // 重校屏幕 B 时保留已吸收的漂移：新偏角就是按当前修正量算的
+        store.$screenBOffset
+            .removeDuplicates()
+            .dropFirst()
+            .sink { [weak self] _ in self?.resetAll(keepingDrift: true) }
             .store(in: &bag)
 
         tracker.samples
@@ -137,8 +152,15 @@ final class SceneEngine: ObservableObject {
 
     private func process(_ pose: HeadPose) {
         guard !isSuspended else { return }
-        updateCalibration(pose)
-        let corrected = calibration.corrected(pose)
+        let corrected: HeadPose
+        if store.dualScreen, let offsetB = store.screenBOffset, tracker.isCalibrated {
+            // 双屏模式：yaw 重映射为「离最近屏幕的偏航」，稳定在屏前时快照清漂移。
+            // 有动作触发期间不修正，避免把长按/模糊中途拉基准
+            corrected = dualAnchor.remap(pose, offsetB: offsetB, allowSnap: active.isEmpty)
+        } else {
+            updateCalibration(pose)
+            corrected = calibration.corrected(pose)
+        }
         feed.forward = corrected
         feed.raw = pose
         posture.update(pitch: pose.pitch)
@@ -146,6 +168,18 @@ final class SceneEngine: ObservableObject {
         for (g, on) in runtime.process(corrected: corrected, raw: pose, skip: skip) {
             apply(g, on)
         }
+    }
+
+    /// 双屏模式：把当前姿态记为屏幕 B（相对屏幕 A 的偏航）。先校准过屏幕 A 才有效
+    func calibrateScreenB() {
+        guard tracker.isCalibrated, tracker.status.isTracking else { return }
+        // 减掉快照已经吸收的漂移，否则下次回到屏幕 A 重锚后，屏幕 B 会多偏一份漂移
+        store.screenBOffset = tracker.pose.yaw - dualAnchor.correction
+    }
+
+    /// 清掉屏幕 B 基准
+    func clearScreenB() {
+        store.screenBOffset = nil
     }
 
     private func updateCalibration(_ pose: HeadPose) {
@@ -202,10 +236,11 @@ final class SceneEngine: ObservableObject {
     }
 
     /// 追踪中断或重新校准：清掉所有状态，回到初始
-    private func resetAll() {
+    private func resetAll(keepingDrift: Bool = false) {
         deactivateAll()
         runtime.resetAll()
         calibration = ForwardCalibration()
+        if !keepingDrift { dualAnchor.reset() }
         feed.forward = .zero
         feed.raw = .zero
         posture.reset()

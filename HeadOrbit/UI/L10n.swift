@@ -101,6 +101,16 @@ final class L10n: ObservableObject {
         "pose.recalibrate": ("Recalibrate forward", "重新校准正前方", "正面を再キャリブレーション"),
         "pose.help": ("Sit up straight and look at the screen, then click. All angles are measured from this pose. Right turn, head-up and right tilt are positive.", "坐正、平视屏幕时点一下，之后所有角度都相对这个姿态计算。右转、抬头、右歪为正。", "背筋を伸ばして画面をまっすぐ見た状態でクリックしてください。以降の角度はすべてこの姿勢を基準に計測します。右向き・上向き・右への傾きが正の値です。"),
 
+        // dual screen
+        "dual.enable": ("Dual-screen mode", "双屏模式", "デュアルスクリーン"),
+        "dual.enableHelp": ("Each screen gets its own forward pose. Your head must leave both screens' coverage to count as turning away — for setups with a side monitor.", "两个屏幕各存一个「正前方」，头离开两块屏幕的覆盖区才算转头。适合 Mac 在侧面、主看外接显示器的布局。", "2 つの画面にそれぞれ正面を登録します。どちらの画面からも頭を離したときだけ振り向きと判定します。"),
+        "dual.calibrateB": ("Calibrate screen B", "校准屏幕 B", "スクリーン B を校正"),
+        "dual.calibrateBHelp": ("First face screen A (your main monitor) and calibrate above, then face screen B (your Mac) and click here. The offset is saved across launches.", "先面对屏幕 A（主显示器）点上面的「校准」，再面对屏幕 B（你的 Mac）点这里。偏角会保存，重启也不用重来。", "まずスクリーン A（メインモニター）を向いて上の「校正」を押し、次にスクリーン B（Mac）を向いてここを押してください。オフセットは保存されます。"),
+        "dual.offset": ("Screen B offset: %@°", "屏幕 B 偏角：%@°", "スクリーン B のオフセット：%@°"),
+        "dual.notCalibrated": ("Screen B not calibrated yet", "屏幕 B 尚未校准", "スクリーン B は未校正です"),
+        "dual.snapHelp": ("Coming back to either screen and holding still for a second re-aligns the baseline, absorbing drift automatically.", "回到任一屏幕前稳定一秒会自动对齐基准，漂移自动清零。", "どちらかの画面の前に戻って 1 秒静止すると基準を自動再調整し、ドリフトを吸収します。"),
+        "dual.clear": ("Clear screen B", "清除屏幕 B", "スクリーン B を削除"),
+
         // posture overlay
         "posture.overlay": ("Sit up straight\nPitch %+.0f°\n\nPress Esc to pause for %.0f s", "坐直一点\nPitch %+.0f°\n\n按 Esc 暂停 %.0f 秒", "背筋を伸ばしましょう\nPitch %+.0f°\n\nEsc キーで %.0f 秒間一時停止"),
 
