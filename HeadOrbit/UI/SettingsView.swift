@@ -71,8 +71,33 @@ private struct CalibrationPage: View {
                 Text(l10n.t("pose.help")).font(.caption).foregroundStyle(.secondary)
             }
             Section {
-                Toggle(l10n.t("pose.auto"), isOn: $store.autoCalibration)
-                Text(l10n.t("pose.autoHelp")).font(.caption).foregroundStyle(.secondary)
+                Toggle(l10n.t("dual.enable"), isOn: $store.dualScreen)
+                Text(l10n.t("dual.enableHelp")).font(.caption).foregroundStyle(.secondary)
+                if store.dualScreen {
+                    HStack {
+                        Button(l10n.t("dual.calibrateB")) { engine.calibrateScreenB() }
+                            .disabled(!tracker.isCalibrated || !tracker.status.isTracking)
+                        Spacer()
+                        if let off = store.screenBOffset {
+                            Text(l10n.t("dual.offset", String(format: "%.0f", off)))
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    Text(l10n.t("dual.calibrateBHelp")).font(.caption).foregroundStyle(.secondary)
+                    if store.screenBOffset != nil {
+                        Text(l10n.t("dual.snapHelp")).font(.caption).foregroundStyle(.secondary)
+                        Button(l10n.t("dual.clear")) { engine.clearScreenB() }
+                            .controlSize(.small)
+                    } else {
+                        Text(l10n.t("dual.notCalibrated")).font(.caption).foregroundStyle(.orange)
+                    }
+                }
+            }
+            if !store.dualScreen {
+                Section {
+                    Toggle(l10n.t("pose.auto"), isOn: $store.autoCalibration)
+                    Text(l10n.t("pose.autoHelp")).font(.caption).foregroundStyle(.secondary)
+                }
             }
         }
         .formStyle(.grouped)
