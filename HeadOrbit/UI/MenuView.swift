@@ -68,11 +68,18 @@ struct MenuView: View {
     }
 
     private var calibrateRow: some View {
-        HStack(spacing: 6) {
-            Button(l10n.t(tracker.isCalibrated ? "pose.recalibrate" : "pose.calibrate")) { tracker.recenter() }
-                .disabled(!tracker.status.isTracking)
-                .controlSize(.small)
-            InfoIcon("pose.help")
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Button(l10n.t(tracker.isCalibrated ? "pose.recalibrate" : "pose.calibrate")) { tracker.recenter() }
+                    .disabled(!tracker.status.isTracking)
+                    .controlSize(.small)
+                InfoIcon("pose.help")
+            }
+            if tracker.status.isTracking && !tracker.isCalibrated {
+                Text(l10n.t("pose.required"))
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
         }
     }
 

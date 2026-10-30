@@ -99,6 +99,7 @@ final class L10n: ObservableObject {
         "pose.roll": ("Tilt", "左右歪头", "左右の傾き"),
         "pose.calibrate": ("Set current pose as forward", "以当前姿态为正前方", "現在の姿勢を正面に設定"),
         "pose.recalibrate": ("Recalibrate forward", "重新校准正前方", "正面を再キャリブレーション"),
+        "pose.required": ("Calibrate forward to enable gesture actions.", "请先校准正前方，再使用手势操作。", "ジェスチャー操作を使うには、まず正面を校正してください。"),
         "pose.help": ("Sit up straight and look at the screen, then click. All angles are measured from this pose. Right turn, head-up and right tilt are positive.", "坐正、平视屏幕时点一下，之后所有角度都相对这个姿态计算。右转、抬头、右歪为正。", "背筋を伸ばして画面をまっすぐ見た状態でクリックしてください。以降の角度はすべてこの姿勢を基準に計測します。右向き・上向き・右への傾きが正の値です。"),
 
         // dual screen

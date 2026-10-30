@@ -73,27 +73,84 @@ voice.isEnabled = true
 var runtime = SceneRuntime(scenes: [SceneConfig.privacy, voice, SceneConfig.posture])
 assert(Set(runtime.slots.keys) == [.turnLeft, .turnRight, .tiltLeft, .tiltRight])
 let leftRoll = -20 * Gesture.rollSign
-assert(runtime.process(corrected: pose(roll: leftRoll, at: 0), raw: pose(at: 0)).isEmpty)
-let down = runtime.process(corrected: pose(roll: leftRoll, at: 0.25), raw: pose(at: 0.25))
+assert(runtime.process(corrected: pose(roll: leftRoll, at: 0), raw: pose(at: 0), isCalibrated: true).isEmpty)
+let down = runtime.process(corrected: pose(roll: leftRoll, at: 0.25), raw: pose(at: 0.25), isCalibrated: true)
 assert(down.count == 1 && down[0].0 == .tiltLeft && down[0].1)
-assert(runtime.process(corrected: pose(roll: leftRoll * 0.6, at: 1), raw: pose(at: 1)).isEmpty, "Hysteresis keeps it held")
-assert(runtime.process(corrected: pose(at: 2), raw: pose(at: 2)).isEmpty)
-let up = runtime.process(corrected: pose(at: 2.15), raw: pose(at: 2.15))
+assert(runtime.process(corrected: pose(roll: leftRoll * 0.6, at: 0.5), raw: pose(at: 0.5), isCalibrated: true).isEmpty, "Hysteresis keeps it held")
+assert(runtime.process(corrected: pose(at: 0.75), raw: pose(at: 0.75), isCalibrated: true).isEmpty)
+let up = runtime.process(corrected: pose(at: 0.9), raw: pose(at: 0.9), isCalibrated: true)
 assert(up.count == 1 && up[0].0 == .tiltLeft && !up[0].1)
 // A big tilt drags yaw/pitch along; once held it must stay held until the head comes back.
 var tiltRuntime = SceneRuntime(scenes: [voice])
-_ = tiltRuntime.process(corrected: pose(roll: leftRoll, at: 10), raw: pose(at: 10))
-assert(tiltRuntime.process(corrected: pose(roll: leftRoll, at: 10.25), raw: pose(at: 10.25)).first! == (.tiltLeft, true))
-assert(tiltRuntime.process(corrected: pose(30, 28, roll: leftRoll * 2.5, at: 11), raw: pose(at: 11)).isEmpty,
+_ = tiltRuntime.process(corrected: pose(roll: leftRoll, at: 10), raw: pose(at: 10), isCalibrated: true)
+assert(tiltRuntime.process(corrected: pose(roll: leftRoll, at: 10.25), raw: pose(at: 10.25), isCalibrated: true).first! == (.tiltLeft, true))
+assert(tiltRuntime.process(corrected: pose(30, 28, roll: leftRoll * 2.5, at: 10.5), raw: pose(at: 10.5), isCalibrated: true).isEmpty,
        "Tilting further must not release")
-assert(tiltRuntime.process(corrected: pose(30, 28, roll: leftRoll * 2.5, at: 12), raw: pose(at: 12)).isEmpty)
+assert(tiltRuntime.process(corrected: pose(30, 28, roll: leftRoll * 2.5, at: 10.75), raw: pose(at: 10.75), isCalibrated: true).isEmpty)
+let interruptedHold = tiltRuntime.process(corrected: pose(roll: leftRoll, at: 12), raw: pose(at: 12), isCalibrated: true)
+assert(interruptedHold.isEmpty, "A brief stream gap alone does not end a held gesture")
+assert(tiltRuntime.process(corrected: pose(at: 12.25), raw: pose(at: 12.25), isCalibrated: true).isEmpty)
+let returnedAfterGap = tiltRuntime.process(corrected: pose(at: 12.4), raw: pose(at: 12.4), isCalibrated: true)
+assert(returnedAfterGap.count == 1 && returnedAfterGap[0] == (.tiltLeft, false), "Continuous return-to-forward samples release the held key")
+
+// A short interruption must not rearm a one-shot key while the head stays tilted.
+var tapRuntime = SceneRuntime(scenes: [voice])
+let rightRoll = 20 * Gesture.rollSign
+var tapCount = 0
+for t in [0.0, 0.3, 1.0, 1.25, 1.6] {
+    let flips = tapRuntime.process(corrected: pose(roll: rightRoll, at: t), raw: pose(at: t), isCalibrated: true)
+    tapCount += flips.filter { $0 == (.tiltRight, true) }.count
+    assert(flips.allSatisfy { $0.1 }, "A gap must not emit a spurious return-to-forward event")
+}
+assert(tapCount == 1, "Keeping the same tilt through a gap must press Return only once")
+assert(tapRuntime.process(corrected: pose(at: 1.8), raw: pose(at: 1.8), isCalibrated: true).isEmpty)
+assert(tapRuntime.process(corrected: pose(at: 1.95), raw: pose(at: 1.95), isCalibrated: true).first! == (.tiltRight, false))
+assert(tapRuntime.process(corrected: pose(roll: rightRoll, at: 2.1), raw: pose(at: 2.1), isCalibrated: true).isEmpty)
+assert(tapRuntime.process(corrected: pose(roll: rightRoll, at: 2.45), raw: pose(at: 2.45), isCalibrated: true).first! == (.tiltRight, true),
+       "Returning forward rearms the next deliberate tap")
+
+// A gap must not uncover the screen while the head is still turned away.
+var blurRuntime = SceneRuntime(scenes: [SceneConfig.privacy])
+for t in [0.0, 0.3] {
+    assert(blurRuntime.process(corrected: pose(-40, at: t), raw: pose(at: t), isCalibrated: true).isEmpty)
+}
+assert(blurRuntime.process(corrected: pose(-40, at: 0.65), raw: pose(at: 0.65), isCalibrated: true).first! == (.turnLeft, true))
+assert(blurRuntime.process(corrected: pose(-40, at: 1.5), raw: pose(at: 1.5), isCalibrated: true).isEmpty,
+       "A brief stream gap does not release an active privacy blur")
 // Posture reads the manual reference, not the auto-adjusted one.
 var posture = SceneConfig.posture
 posture.isEnabled = true
 var postureRuntime = SceneRuntime(scenes: [posture])
-_ = postureRuntime.process(corrected: pose(0, 0, at: 0), raw: pose(0, 20, at: 0))
-assert(postureRuntime.process(corrected: pose(0, 0, at: 5.1), raw: pose(0, 20, at: 5.1)).first! == (.lookUp, true))
-assert(postureRuntime.process(corrected: pose(at: 6), raw: pose(0, 20, at: 6), skip: [.lookUp]).isEmpty)
+for i in 0..<20 {
+    let t = Double(i) / 4
+    assert(postureRuntime.process(corrected: pose(at: t), raw: pose(0, 20, at: t), isCalibrated: true).isEmpty)
+}
+assert(postureRuntime.process(corrected: pose(at: 5.1), raw: pose(0, 20, at: 5.1), isCalibrated: true).first! == (.lookUp, true))
+assert(postureRuntime.process(corrected: pose(at: 5.25), raw: pose(0, 20, at: 5.25), isCalibrated: true, skip: [.lookUp]).isEmpty)
+
+// First launch and reconnection: uncalibrated angles cannot invoke any action.
+var readinessRuntime = SceneRuntime(scenes: [SceneConfig.privacy, voice, posture])
+for i in 0...24 {
+    let t = Double(i) / 4
+    let uncalibrated = pose(-50, 25, roll: leftRoll, at: t)
+    assert(readinessRuntime.process(corrected: uncalibrated, raw: uncalibrated, isCalibrated: false).isEmpty)
+}
+let readyStart = pose(roll: leftRoll, at: 6.25)
+assert(readinessRuntime.process(corrected: readyStart, raw: readyStart, isCalibrated: true).isEmpty,
+       "Uncalibrated time must not count toward the first calibrated gesture")
+let readyHeld = pose(roll: leftRoll, at: 6.5)
+assert(readinessRuntime.process(corrected: readyHeld, raw: readyHeld, isCalibrated: true).first! == (.tiltLeft, true))
+let lostCalibration = pose(roll: leftRoll, at: 6.75)
+let calibrationRelease = readinessRuntime.process(corrected: lostCalibration, raw: lostCalibration, isCalibrated: false)
+assert(calibrationRelease.count == 1 && calibrationRelease[0] == (.tiltLeft, false),
+       "Losing calibration must release an already active key")
+let stillUncalibrated = pose(roll: leftRoll, at: 7)
+assert(readinessRuntime.process(corrected: stillUncalibrated, raw: stillUncalibrated, isCalibrated: false).isEmpty)
+let recalibrated = pose(roll: leftRoll, at: 7.25)
+assert(readinessRuntime.process(corrected: recalibrated, raw: recalibrated, isCalibrated: true).isEmpty)
+let heldAgain = pose(roll: leftRoll, at: 7.5)
+assert(readinessRuntime.process(corrected: heldAgain, raw: heldAgain, isCalibrated: true).first! == (.tiltLeft, true),
+       "Recalibration starts a fresh dwell and permits gestures again")
 
 // Existing stability scenarios use a fixed test envelope.
 extension ForwardCalibration {
@@ -151,10 +208,51 @@ for (yaw, pitch, accepted) in [(-24.0, 19.0, true), (14.0, -29.0, true),
     assert(adaptive.yaw == priorYaw)
 }
 assert(!trigger.update(2, at: 0))
+assert(!trigger.update(2, at: 0.35))
 assert(trigger.update(2, at: 0.7) && trigger.isActive)
 assert(!trigger.update(-0.1, at: 1))
-assert(!trigger.update(-1, at: 2))
-assert(trigger.update(-1, at: 2.3) && !trigger.isActive)
+assert(!trigger.update(-1, at: 1.25))
+assert(trigger.update(-1, at: 1.55) && !trigger.isActive)
+
+// Missing samples cannot prove continuous entry or return-to-forward dwell.
+var interrupted = DwellTrigger(threshold: 35, enterDwell: 0.6)
+assert(!interrupted.update(40, at: 0))
+assert(!interrupted.update(40, at: 1.5) && !interrupted.isActive, "An entry gap restarts dwell")
+assert(!interrupted.update(40, at: 1.8))
+assert(interrupted.update(40, at: 2.11) && interrupted.isActive, "Continuous samples after a gap can activate")
+assert(!interrupted.update(40, at: 3) && interrupted.isActive, "A gap alone must preserve the active latch")
+assert(!interrupted.update(40, at: 3.25))
+assert(!interrupted.update(40, at: 3.5))
+assert(!interrupted.update(40, at: 3.86) && interrupted.isActive, "An unchanged gesture must not fire twice")
+assert(!interrupted.update(0, at: 4))
+assert(!interrupted.update(0, at: 4.8) && interrupted.isActive, "A gap during exit dwell restarts the return timer")
+assert(!interrupted.update(0, at: 4.9) && interrupted.isActive)
+assert(interrupted.update(0, at: 5.1) && !interrupted.isActive, "Continuous neutral samples after the gap complete exit dwell")
+
+// Duplicate/backward timestamps also break continuity instead of carrying old dwell.
+var clockReset = DwellTrigger(threshold: 35, enterDwell: 0.5)
+assert(!clockReset.update(40, at: 10))
+assert(!clockReset.update(40, at: 10.3))
+assert(!clockReset.update(40, at: 9))
+assert(!clockReset.update(40, at: 9.3), "Backward time must discard the earlier entry timer")
+assert(clockReset.update(40, at: 9.6) && clockReset.isActive)
+assert(!clockReset.update(0, at: 9.8))
+assert(!clockReset.update(0, at: 9.8) && clockReset.isActive, "Duplicate timestamps restart exit dwell without dropping the active latch")
+assert(!clockReset.update(0, at: 10) && clockReset.isActive)
+assert(!clockReset.update(0, at: 9) && clockReset.isActive, "Backward time also restarts exit dwell")
+assert(!clockReset.update(0, at: 9.2) && clockReset.isActive)
+assert(clockReset.update(0, at: 9.3) && !clockReset.isActive)
+clockReset.reset()
+assert(!clockReset.update(40, at: 0))
+assert(!clockReset.update(40, at: 0.3))
+assert(!clockReset.update(40, at: 0.3), "Duplicate timestamps discard pending entry dwell")
+assert(!clockReset.update(40, at: 0.6))
+assert(clockReset.update(40, at: 0.9) && clockReset.isActive)
+
+var zeroDwell = DwellTrigger(threshold: 35, enterDwell: 0)
+assert(zeroDwell.update(40, at: 0) && zeroDwell.isActive)
+assert(!zeroDwell.update(40, at: 1) && zeroDwell.isActive, "A gap cannot rearm a zero-dwell gesture")
+assert(!zeroDwell.update(40, at: 1.25) && zeroDwell.isActive)
 // Dual screen: yaw reads as distance to the nearer screen; holding still re-anchors drift.
 var dual = DualAnchor()
 assert(dual.remap(pose(-38, at: 0), offsetB: -40, allowSnap: false).yaw == 2, "Near screen B reads as near forward")

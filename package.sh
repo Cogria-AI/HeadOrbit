@@ -3,8 +3,14 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 xcodegen generate
-xcodebuild -project HeadOrbit.xcodeproj -scheme HeadOrbit -configuration Release \
-  -derivedDataPath build CODE_SIGN_IDENTITY=- build 2>&1 | grep -E "error:|BUILD" || true
+if xcodebuild -project HeadOrbit.xcodeproj -scheme HeadOrbit -configuration Release \
+  -derivedDataPath build CODE_SIGN_IDENTITY=- build 2>&1 | awk '/error:|BUILD/'; then
+  :
+else
+  build_status=$?
+  echo "xcodebuild failed (exit $build_status)." >&2
+  exit "$build_status"
+fi
 APP=build/Build/Products/Release/HeadOrbit.app
 VERSION=$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$APP/Contents/Info.plist")
 STAGE=build/dmg

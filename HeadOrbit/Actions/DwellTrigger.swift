@@ -8,8 +8,12 @@ struct DwellTrigger {
     var hysteresis: Double = 8
     var exitDwell: TimeInterval = 0.25
 
+    /// A missing half second breaks continuity, matching the calibration freshness limit.
+    static let maxSampleInterval: TimeInterval = 0.5
+
     private(set) var isActive = false
     private var since: TimeInterval?
+    private var previousTime: TimeInterval?
 
     init(threshold: Double, enterDwell: TimeInterval, hysteresis: Double = 8, exitDwell: TimeInterval = 0.25) {
         self.threshold = threshold
@@ -20,6 +24,13 @@ struct DwellTrigger {
 
     /// 喂一个值和时间戳，返回 true 表示状态刚刚翻转
     mutating func update(_ value: Double, at t: TimeInterval) -> Bool {
+        defer { previousTime = t }
+        if let previousTime, t <= previousTime || t - previousTime > Self.maxSampleInterval {
+            since = nil
+            // Missing samples cannot prove entry or return-to-forward dwell.
+            // Keep the active latch: a gap alone must not repeat a key tap or
+            // uncover a blurred screen. Prolonged silence is reset by HeadTracker.
+        }
         let crossed = isActive ? value < threshold - hysteresis : value > threshold
         guard crossed else { since = nil; return false }
         if since == nil { since = t }
@@ -33,5 +44,6 @@ struct DwellTrigger {
     mutating func reset() {
         isActive = false
         since = nil
+        previousTime = nil
     }
 }
